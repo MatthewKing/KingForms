@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32126.317
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KingForms", "src\KingForms\KingForms.csproj", "{1FEB0BE7-CA84-42DE-9E62-A8AE7EDB2001}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KingForms.Demo", "samples\KingForms.Demo\KingForms.Demo.csproj", "{4A29BF97-6824-4FBB-A85B-F6CD8D78CA85}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1FEB0BE7-CA84-42DE-9E62-A8AE7EDB2001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FEB0BE7-CA84-42DE-9E62-A8AE7EDB2001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FEB0BE7-CA84-42DE-9E62-A8AE7EDB2001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FEB0BE7-CA84-42DE-9E62-A8AE7EDB2001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A29BF97-6824-4FBB-A85B-F6CD8D78CA85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A29BF97-6824-4FBB-A85B-F6CD8D78CA85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A29BF97-6824-4FBB-A85B-F6CD8D78CA85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A29BF97-6824-4FBB-A85B-F6CD8D78CA85}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BC59F463-CF96-4DCA-B871-05903BC4A2F7}
+	EndGlobalSection
+EndGlobal

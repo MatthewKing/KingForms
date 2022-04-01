@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net472;net5.0-windows;net6.0-windows</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+	  <UseWindowsForms>true</UseWindowsForms>
+	  <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<Using Remove="System.Net.Http" />
+	</ItemGroup>
+
+</Project>
