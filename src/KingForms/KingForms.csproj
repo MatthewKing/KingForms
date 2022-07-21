@@ -1,11 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <PackageId>KingForms</PackageId>
+    <Title>KingForms</Title>
+    <Description>Miscellaneous extensions and helpers for Windows Forms projects.</Description>
+    <Authors>Matthew King</Authors>
+    <Copyright>Copyright Matthew King.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/MatthewKing/KingForms</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MatthewKing/KingForms</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>winforms windows forms</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <TargetFrameworks>net472;net5.0-windows;net6.0-windows</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="All" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Remove="System.Net.Http" />
