@@ -6,22 +6,34 @@ public class ApplicationContextBuilder
     private Func<SplashFormBase> _splashFormFactory;
     private Func<object, Form[]> _mainFormsFactory;
 
-    public ApplicationContextBuilder WithSplashForm(Func<SplashFormBase> splashFormFactory, TimeSpan displayDuration)
+    public ApplicationContextBuilder WithInitializer(IApplicationInitializer initializer)
     {
-        _splashFormFactory = splashFormFactory;
-        _initializer = new ApplicationInitializer(async (progress, cancellationToken) =>
-        {
-            await Task.Delay(displayDuration, cancellationToken);
-            return null;
-        });
+        _initializer = initializer;
 
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(Func<SplashFormBase> splashFormFactory, IApplicationInitializer initializer)
+    public ApplicationContextBuilder WithSplashForm(SplashFormBase splashForm, TimeSpan duration, string text)
+    {
+        _splashFormFactory = () => splashForm;
+
+        if (_initializer is null)
+        {
+            _initializer = new ApplicationInitializer(async (progress, cancellationToken) =>
+            {
+                progress.Text.Report(text);
+                await Task.Delay(duration, cancellationToken);
+                return null;
+            });
+        }
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithSplashForm(Func<SplashFormBase> splashFormFactory)
     {
         _splashFormFactory = splashFormFactory;
-        _initializer = initializer;
+
         return this;
     }
 
@@ -36,7 +48,9 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder SingleMainForm(Form mainForm)
     {
-        return SingleMainForm<object>(context => mainForm);
+        _mainFormsFactory = context => new Form[] { mainForm };
+
+        return this;
     }
 
     public ApplicationContextBuilder MultipleMainForms<TContext>(Func<TContext, IEnumerable<Form>> mainFormsFactory)
@@ -50,7 +64,9 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder MultipleMainForms(IEnumerable<Form> mainForms)
     {
-        return MultipleMainForms<object>(context => mainForms.ToArray());
+        _mainFormsFactory = context => mainForms.ToArray();
+
+        return this;
     }
 
     public ApplicationContext Build()
@@ -59,5 +75,10 @@ public class ApplicationContextBuilder
         applicationContext.Run();
 
         return applicationContext;
+    }
+
+    public static implicit operator ApplicationContext(ApplicationContextBuilder builder)
+    {
+        return builder.Build();
     }
 }
