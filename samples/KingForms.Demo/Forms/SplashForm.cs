@@ -2,9 +2,11 @@
 
 public partial class SplashForm : SplashFormBase
 {
-    public SplashForm()
+    public SplashForm(ProgressBarStyle style)
     {
         InitializeComponent();
+
+        uxProgressBar.Style = style;
     }
 
     private void SplashForm_Load(object sender, EventArgs e)
@@ -19,11 +21,6 @@ public partial class SplashForm : SplashFormBase
 
     protected override void ReportProgressPercent(int progressPercent)
     {
-        if (uxProgressBar.Style is not ProgressBarStyle.Continuous)
-        {
-            uxProgressBar.Style = ProgressBarStyle.Continuous;
-        }
-
         uxProgressBar.Value = progressPercent;
     }
 }
