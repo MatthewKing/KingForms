@@ -27,9 +27,12 @@ public class SplashFormBase : Form
         if (!InitializerAttached)
         {
             InitializerAttached = true;
+
+            var progress = CreateApplicationInitializerProgress();
+
             Load += async (sender, e) =>
             {
-                InitializationResult = await initializer.Run(CreateApplicationInitializerProgress(), CancellationToken.None);
+                InitializationResult = await Task.Run(async () => await initializer.Run(progress, CancellationToken.None));
                 InitializationComplete = true;
                 CanBeClosed = true;
                 Close();
