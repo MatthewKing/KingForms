@@ -1,4 +1,4 @@
-﻿namespace KingForms.Demo;
+﻿namespace KingForms.Demo.Forms;
 
 public partial class MainForm2 : Form
 {

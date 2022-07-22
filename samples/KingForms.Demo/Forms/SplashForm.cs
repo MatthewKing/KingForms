@@ -1,7 +1,10 @@
-﻿namespace KingForms.Demo;
+﻿namespace KingForms.Demo.Forms;
 
 public partial class SplashForm : SplashFormBase
 {
+    public SplashForm()
+        : this(ProgressBarStyle.Marquee) { }
+
     public SplashForm(ProgressBarStyle style)
     {
         InitializeComponent();

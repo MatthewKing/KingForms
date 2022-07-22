@@ -1,8 +1,8 @@
 ﻿namespace KingForms.Demo;
 
-internal class ApplicationInitializerSimple : IApplicationInitializer
+public class DemoInitializer : IApplicationInitializer
 {
-    public async Task<object> Run(ApplicationInitializationProgress progress, CancellationToken cancellationToken)
+    public async Task<object> InitializeAsync(ApplicationInitializationProgress progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Initializing...");
         var context = new DemoContext();
