@@ -1,72 +1,63 @@
 ﻿namespace KingForms;
 
-internal sealed class ApplicationContextExtended : ApplicationContext
+internal sealed class ApplicationContextExtended : ApplicationContext, IApplicationFormLauncher
 {
-    private readonly Func<object, IEnumerable<Form>> _mainFormsFactory;
-    private readonly Func<SplashFormBase> _splashFormFactory;
-    private readonly IApplicationInitializer _initializer;
-    private readonly IList<Form> _mainForms;
+    public Action ApplicationStarting { get; set; }
+    public Action ApplicationStopping { get; set; }
+    public Action<object> ApplicationStart { get; set; }
 
-    public ApplicationContextExtended(
-        Func<object, IEnumerable<Form>> mainFormsFactory,
-        IApplicationInitializer initializer,
-        Func<SplashFormBase> splashFormFactory)
+    public Func<SplashFormBase> SplashForm { get; set; }
+    public IApplicationInitializer Initializer { get; set; }
+
+    private readonly IList<Form> _forms;
+
+    public ApplicationContextExtended()
     {
-        _initializer = initializer;
-        _splashFormFactory = splashFormFactory;
-        _mainFormsFactory = mainFormsFactory;
-        _mainForms = new List<Form>();
+        _forms = new List<Form>();
     }
 
     public void Run()
     {
-        if (_splashFormFactory != null)
+        if (SplashForm is not null)
         {
-            var splashForm = _splashFormFactory.Invoke();
-            if (_initializer != null)
-            {
-                splashForm.AttachInitializer(_initializer);
-            }
+            var splashForm = SplashForm.Invoke();
+            splashForm.AttachInitializer(Initializer ?? ApplicationInitializer.Simple(TimeSpan.FromSeconds(1), "Loading..."));
 
-            if (splashForm.KeepHidden)
-            {
-                splashForm.Opacity = 0;
-            }
-
-            ShowForm(splashForm);
-
-            if (splashForm.KeepHidden)
-            {
-                splashForm.Visible = false;
-            }
+            Launch(splashForm, !splashForm.KeepHidden);
 
             splashForm.FormClosed += (s, e) =>
             {
                 if (splashForm.InitializationComplete)
                 {
-                    foreach (var mainForm in _mainFormsFactory.Invoke(splashForm.InitializationResult))
-                    {
-                        ShowForm(mainForm);
-                    }
+                    ApplicationStarting?.Invoke();
+                    ApplicationStart?.Invoke(splashForm.InitializationResult);
                 }
             };
         }
         else
         {
-            foreach (var mainForm in _mainFormsFactory.Invoke(null))
-            {
-                ShowForm(mainForm);
-            }
+            ApplicationStarting?.Invoke();
+            ApplicationStart?.Invoke(null);
         }
     }
 
-    private void ShowForm(Form form)
+    public void Launch(Form form, bool visible)
     {
         if (form is not null)
         {
-            _mainForms.Add(form);
+            if (!visible)
+            {
+                form.Opacity = 0;
+            }
+
+            _forms.Add(form);
             form.HandleDestroyed += OnFormDestroy;
             form.Visible = true;
+
+            if (!visible)
+            {
+                form.Visible = false;
+            }
         }
     }
 
@@ -78,9 +69,10 @@ internal sealed class ApplicationContextExtended : ApplicationContext
             {
                 form.HandleDestroyed -= OnFormDestroy;
 
-                _mainForms.Remove(form);
-                if (_mainForms.Count == 0)
+                _forms.Remove(form);
+                if (_forms.Count == 0)
                 {
+                    ApplicationStopping?.Invoke();
                     ExitThreadCore();
                 }
             }

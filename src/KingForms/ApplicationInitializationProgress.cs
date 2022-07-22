@@ -1,6 +1,6 @@
 ﻿namespace KingForms;
 
-public class ApplicationInitializationProgress
+public sealed class ApplicationInitializationProgress
 {
     public IProgress<string> Text { get; }
     public IProgress<int> Percent { get; }

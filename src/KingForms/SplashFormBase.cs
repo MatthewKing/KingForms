@@ -32,7 +32,7 @@ public class SplashFormBase : Form
 
             Load += async (sender, e) =>
             {
-                InitializationResult = await Task.Run(async () => await initializer.Run(progress, CancellationToken.None));
+                InitializationResult = await Task.Run(async () => await initializer.InitializeAsync(progress, CancellationToken.None));
                 InitializationComplete = true;
                 CanBeClosed = true;
                 Close();

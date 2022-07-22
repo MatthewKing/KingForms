@@ -4,7 +4,14 @@ public class ApplicationContextBuilder
 {
     private IApplicationInitializer _initializer;
     private Func<SplashFormBase> _splashFormFactory;
-    private Func<object, Form[]> _mainFormsFactory;
+    private Action _onStarting;
+    private Action _onStopping;
+    private Action<object, IApplicationFormLauncher> _start;
+
+    public ApplicationContextBuilder()
+    {
+        _initializer = ApplicationInitializer.Empty();
+    }
 
     public ApplicationContextBuilder WithInitializer(IApplicationInitializer initializer)
     {
@@ -13,19 +20,23 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(SplashFormBase splashForm, TimeSpan duration, string text)
+    public ApplicationContextBuilder WithInitializer<TInitializer>()
+        where TInitializer : IApplicationInitializer, new()
+    {
+        return WithInitializer(new TInitializer());
+    }
+
+    public ApplicationContextBuilder WithSplashForm<TSplashForm>()
+        where TSplashForm : SplashFormBase, new()
+    {
+        _splashFormFactory = () => new TSplashForm();
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithSplashForm(SplashFormBase splashForm)
     {
         _splashFormFactory = () => splashForm;
-
-        if (_initializer is null)
-        {
-            _initializer = new ApplicationInitializer(async (progress, cancellationToken) =>
-            {
-                progress.Text.Report(text);
-                await Task.Delay(duration, cancellationToken);
-                return null;
-            });
-        }
 
         return this;
     }
@@ -39,39 +50,116 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder SingleMainForm<TContext>(Func<TContext, Form> mainFormFactory)
     {
-        _mainFormsFactory = context => context is TContext contextT
-            ? new Form[] { mainFormFactory.Invoke(contextT) }
-            : throw new ApplicationInitializationException($"Application initialization returned {context.GetType().Name} but expected {typeof(TContext).Name}.");
+        _start = (context, launcher) =>
+        {
+            if (context is TContext contextT)
+            {
+                var form = mainFormFactory?.Invoke(contextT);
+                if (form is not null)
+                {
+                    launcher.Launch(form, true);
+                }
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Application initialization returned {context.GetType().Name} but expected {typeof(TContext).Name}.");
+            }
+        };
+        return this;
+    }
+
+    public ApplicationContextBuilder SingleMainForm(Form form)
+    {
+        _start = (context, launcher) =>
+        {
+            launcher.Launch(form, true);
+        };
 
         return this;
     }
 
-    public ApplicationContextBuilder SingleMainForm(Form mainForm)
+    public ApplicationContextBuilder SingleMainForm<TForm>()
+        where TForm : Form, new()
     {
-        _mainFormsFactory = context => new Form[] { mainForm };
-
-        return this;
+        return SingleMainForm(new TForm());
     }
 
     public ApplicationContextBuilder MultipleMainForms<TContext>(Func<TContext, IEnumerable<Form>> mainFormsFactory)
     {
-        _mainFormsFactory = context => context is TContext contextT
-            ? mainFormsFactory.Invoke(contextT).ToArray()
-            : throw new ApplicationInitializationException($"Application initialization returned {context.GetType().Name} but expected {typeof(TContext).Name}.");
+        _start = (context, launcher) =>
+        {
+            if (context is TContext contextT)
+            {
+                var forms = mainFormsFactory?.Invoke(contextT);
+                if (forms is not null)
+                {
+                    foreach (var form in forms)
+                    {
+                        launcher.Launch(form, true);
+                    }
+                }
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Application initialization returned {context.GetType().Name} but expected {typeof(TContext).Name}.");
+            }
+        };
 
         return this;
     }
 
-    public ApplicationContextBuilder MultipleMainForms(IEnumerable<Form> mainForms)
+    public ApplicationContextBuilder MultipleMainForms(IEnumerable<Form> forms)
     {
-        _mainFormsFactory = context => mainForms.ToArray();
+        _start = (context, launcher) =>
+        {
+            foreach (var form in forms)
+            {
+                launcher.Launch(form, true);
+            }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder CustomMainForms<TContext>(Action<TContext, IApplicationFormLauncher> action)
+    {
+        _start = (context, launcher) =>
+        {
+            if (context is TContext contextT)
+            {
+                action?.Invoke(contextT, launcher);
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Application initialization returned {context.GetType().Name} but expected {typeof(TContext).Name}.");
+            }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnStarting(Action action)
+    {
+        _onStarting = action;
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnStopping(Action action)
+    {
+        _onStopping = action;
 
         return this;
     }
 
     public ApplicationContext Build()
     {
-        var applicationContext = new ApplicationContextExtended(_mainFormsFactory, _initializer, _splashFormFactory);
+        var applicationContext = new ApplicationContextExtended();
+        applicationContext.Initializer = _initializer;
+        applicationContext.SplashForm = _splashFormFactory;
+        applicationContext.ApplicationStart = initializationContext => _start?.Invoke(initializationContext, applicationContext);
+        applicationContext.ApplicationStarting = _onStarting;
+        applicationContext.ApplicationStopping = _onStopping;
         applicationContext.Run();
 
         return applicationContext;

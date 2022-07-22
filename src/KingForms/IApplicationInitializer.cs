@@ -2,5 +2,5 @@
 
 public interface IApplicationInitializer
 {
-    Task<object> Run(ApplicationInitializationProgress progress, CancellationToken cancellationToken);
+    Task<object> InitializeAsync(ApplicationInitializationProgress progress, CancellationToken cancellationToken);
 }
