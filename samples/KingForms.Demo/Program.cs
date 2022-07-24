@@ -1,60 +1,62 @@
+using KingForms;
+using KingForms.Demo;
 using KingForms.Demo.Forms;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace KingForms.Demo;
-
-internal static class Program
+static class Program
 {
     [STAThread]
     public static void Main()
     {
-        ApplicationConfiguration.Initialize();
-
-        // Async initialization and a splash form:
-        Application.Run(new ApplicationContextBuilder()
+        // Simple example with async initialization and a splash form:
+        ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializer>()
             .WithSplashForm<SplashForm>()
-            .SingleMainForm<MainFormEmpty>());
+            .SingleMainForm<MainFormEmpty>()
+            .Run();
 
         // Async initialization, a splash form, and multiple main forms:
-        Application.Run(new ApplicationContextBuilder()
+        ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializer>()
             .WithSplashForm(new SplashForm(ProgressBarStyle.Continuous))
-            .MultipleMainForms((DemoContext context) => new Form[] {
-                new MainForm1(context),
-                new MainForm2(context),
+            .MultipleMainForms((DemoInitializationResult result) => new Form[] {
+                new MainForm1(result),
+                new MainForm2(result),
                 new ComboBoxDemoForm(),
-            }));
+            })
+            .Run();
 
         // As above, but also with DI/IoC:
-        Application.Run(new ApplicationContextBuilder()
+        ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializerWithDI>()
             .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous))
             .MultipleMainForms<IServiceProvider>(services => new Form[] {
                 services.GetService<MainForm1>(),
                 services.GetService<MainForm2>(),
                 services.GetService<ComboBoxDemoForm>(),
-            }));
+            })
+            .Run();
 
-        // Lifecycle events:
-        Application.Run(new ApplicationContextBuilder()
-            .OnStarting(() => MessageBox.Show("Starting app"))
-            .OnStopping(() => MessageBox.Show("Stopping app"))
+        // Advanced example, with forms being shown in order:
+        ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializer>()
             .WithSplashForm<SplashForm>()
-            .SingleMainForm<MainFormEmpty>());
-
-        // Custom form logic:
-        Application.Run(new ApplicationContextBuilder()
-            .WithInitializer<DemoInitializer>()
-            .WithSplashForm<SplashForm>()
-            .CustomMainForms<DemoContext>((context, launcher) =>
+            .CustomRunAction<DemoInitializationResult>((initializationResult, context) =>
             {
-                var hiddenForm = new MainForm1(context);
-                launcher.Launch(hiddenForm, false);
-                var visibleForm = new MainForm1(context);
-                visibleForm.FormClosed += (s, e) => hiddenForm.Close();
-                launcher.Launch(visibleForm, true);
-            }));
+                // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
+                var mainForm1 = new MainForm1(initializationResult);
+                context.AttachForm(mainForm1, true);
+                mainForm1.FormClosed += (s, e) =>
+                {
+                    var mainForm2 = new MainForm2(initializationResult);
+                    context.AttachForm(mainForm2, true);
+                    mainForm2.FormClosed += (s, e) =>
+                    {
+                        var comboBoxDemoForm = new ComboBoxDemoForm();
+                        context.AttachForm(comboBoxDemoForm, true);
+                    };
+                };
+            })
+            .Run();
     }
 }

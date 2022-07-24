@@ -8,7 +8,7 @@ public class DemoInitializerWithDI : IApplicationInitializer
     public async Task<object> InitializeAsync(ApplicationInitializationProgress progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Initializing...");
-        var context = new DemoContext();
+        var context = new DemoInitializationResult();
         progress.Percent.Report(20);
 
         progress.Text.Report("Connecting to web service...");

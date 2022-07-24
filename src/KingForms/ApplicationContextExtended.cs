@@ -1,11 +1,8 @@
 ﻿namespace KingForms;
 
-internal sealed class ApplicationContextExtended : ApplicationContext, IApplicationFormLauncher
+internal sealed class ApplicationContextExtended : ApplicationContext, IApplicationContext
 {
-    public Action ApplicationStarting { get; set; }
-    public Action ApplicationStopping { get; set; }
     public Action<object> ApplicationStart { get; set; }
-
     public Func<SplashFormBase> SplashForm { get; set; }
     public IApplicationInitializer Initializer { get; set; }
 
@@ -23,25 +20,23 @@ internal sealed class ApplicationContextExtended : ApplicationContext, IApplicat
             var splashForm = SplashForm.Invoke();
             splashForm.AttachInitializer(Initializer ?? ApplicationInitializer.Simple(TimeSpan.FromSeconds(1), "Loading..."));
 
-            Launch(splashForm, !splashForm.KeepHidden);
+            AttachForm(splashForm, !splashForm.KeepHidden);
 
             splashForm.FormClosed += (s, e) =>
             {
                 if (splashForm.InitializationComplete)
                 {
-                    ApplicationStarting?.Invoke();
                     ApplicationStart?.Invoke(splashForm.InitializationResult);
                 }
             };
         }
         else
         {
-            ApplicationStarting?.Invoke();
             ApplicationStart?.Invoke(null);
         }
     }
 
-    public void Launch(Form form, bool visible)
+    public void AttachForm(Form form, bool visible)
     {
         if (form is not null)
         {
@@ -72,7 +67,6 @@ internal sealed class ApplicationContextExtended : ApplicationContext, IApplicat
                 _forms.Remove(form);
                 if (_forms.Count == 0)
                 {
-                    ApplicationStopping?.Invoke();
                     ExitThreadCore();
                 }
             }

@@ -2,7 +2,7 @@
 
 public partial class MainForm1 : Form
 {
-    public MainForm1(DemoContext context)
+    public MainForm1(DemoInitializationResult context)
     {
         InitializeComponent();
 
