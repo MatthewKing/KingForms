@@ -66,13 +66,6 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(SplashFormBase splashForm)
-    {
-        _splashFormFactory = () => splashForm;
-
-        return this;
-    }
-
     public ApplicationContextBuilder WithSplashForm(Func<SplashFormBase> splashFormFactory)
     {
         _splashFormFactory = splashFormFactory;
@@ -80,7 +73,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder SingleMainForm<TInitializationResult>(Func<TInitializationResult, Form> mainFormFactory)
+    public ApplicationContextBuilder WithMainForm<TInitializationResult>(Func<TInitializationResult, Form> mainFormFactory)
     {
         _runAction = (result, context) =>
         {
@@ -100,7 +93,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder SingleMainForm(Func<Form> mainFormFactory)
+    public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
     {
         _runAction = (result, context) =>
         {
@@ -114,13 +107,13 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder SingleMainForm<TForm>()
+    public ApplicationContextBuilder WithMainForm<TForm>()
         where TForm : Form, new()
     {
-        return SingleMainForm(() => new TForm());
+        return WithMainForm(() => new TForm());
     }
 
-    public ApplicationContextBuilder MultipleMainForms<TInitializationResult>(Func<TInitializationResult, IEnumerable<Form>> mainFormsFactory)
+    public ApplicationContextBuilder WithMainForms<TInitializationResult>(Func<TInitializationResult, IEnumerable<Form>> mainFormsFactory)
     {
         _runAction = (result, context) =>
         {
@@ -144,7 +137,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder MultipleMainForms(IEnumerable<Form> forms)
+    public ApplicationContextBuilder WithMainForms(IEnumerable<Form> forms)
     {
         _runAction = (result, context) =>
         {
@@ -157,7 +150,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder CustomRunAction<TInitializationResult>(Action<TInitializationResult, IApplicationContext> action)
+    public ApplicationContextBuilder WithMainFormRunner<TInitializationResult>(Action<TInitializationResult, IApplicationContext> action)
     {
         _runAction = (result, context) =>
         {
