@@ -12,7 +12,7 @@ static class Program
         ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializer>()
             .WithSplashForm<SplashForm>()
-            .WithMainForm<MainFormEmpty>()
+            .WithMainForm<MainForm>()
             .Run();
 
         // Async initialization, a splash form, and multiple main forms:
@@ -37,23 +37,40 @@ static class Program
             })
             .Run();
 
-        // Advanced example, with forms being shown in order:
+        // Advanced example: A hidden form.
+        ApplicationContextBuilder.Create()
+            .OnStart(context =>
+            {
+                // This one is visible:
+                var visibleForm = new MainForm();
+                context.AttachForm(visibleForm, true);
+
+                // This one is hidden:
+                var hiddenForm = new MainForm();
+                context.AttachForm(hiddenForm, false); // This one is hidden.
+
+                // Wire up the hidden one to close when the visible one is closed:
+                visibleForm.FormClosed += (s, e) => hiddenForm.Close();
+            })
+            .Run();
+
+        // Advanced example: Forms being created and shown in order.
         ApplicationContextBuilder.Create()
             .WithInitializer<DemoInitializerWithDI>()
             .WithSplashForm<SplashForm>()
-            .WithMainFormRunner<IServiceProvider>((services, context) =>
+            .OnStart<IServiceProvider>((services, context) =>
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
                 var mainForm1 = services.GetService<MainForm1>();
-                context.AttachForm(mainForm1, true);
+                context.AttachForm(mainForm1);
                 mainForm1.FormClosed += (s, e) =>
                 {
                     var mainForm2 = services.GetService<MainForm2>();
-                    context.AttachForm(mainForm2, true);
+                    context.AttachForm(mainForm2);
                     mainForm2.FormClosed += (s, e) =>
                     {
                         var comboBoxDemoForm = services.GetService<ComboBoxDemoForm>();
-                        context.AttachForm(comboBoxDemoForm, true);
+                        context.AttachForm(comboBoxDemoForm);
                     };
                 };
             })

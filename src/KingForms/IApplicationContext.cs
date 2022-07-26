@@ -2,5 +2,6 @@
 
 public interface IApplicationContext
 {
+    void AttachForm(Form form);
     void AttachForm(Form form, bool visible);
 }

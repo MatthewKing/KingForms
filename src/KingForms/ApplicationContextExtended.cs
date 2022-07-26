@@ -36,6 +36,11 @@ internal sealed class ApplicationContextExtended : ApplicationContext, IApplicat
         }
     }
 
+    public void AttachForm(Form form)
+    {
+        AttachForm(form, true);
+    }
+
     public void AttachForm(Form form, bool visible)
     {
         if (form is not null)

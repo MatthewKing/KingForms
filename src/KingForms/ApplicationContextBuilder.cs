@@ -150,7 +150,17 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithMainFormRunner<TInitializationResult>(Action<TInitializationResult, IApplicationContext> action)
+    public ApplicationContextBuilder OnStart(Action<IApplicationContext> action)
+    {
+        _runAction = (result, context) =>
+        {
+            action?.Invoke(context);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, IApplicationContext> action)
     {
         _runAction = (result, context) =>
         {

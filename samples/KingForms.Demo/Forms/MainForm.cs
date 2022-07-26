@@ -1,8 +1,8 @@
 ﻿namespace KingForms.Demo.Forms;
 
-public partial class MainFormEmpty : Form
+public partial class MainForm : Form
 {
-    public MainFormEmpty()
+    public MainForm()
     {
         InitializeComponent();
 

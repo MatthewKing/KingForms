@@ -1,6 +1,6 @@
 ﻿namespace KingForms.Demo.Forms;
 
-partial class MainFormEmpty
+partial class MainForm
 {
     /// <summary>
     /// Required designer variable.
