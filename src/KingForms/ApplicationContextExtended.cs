@@ -57,6 +57,7 @@ internal sealed class ApplicationContextExtended : ApplicationContext, IApplicat
             if (!visible)
             {
                 form.Visible = false;
+                form.Opacity = 1;
             }
         }
     }
