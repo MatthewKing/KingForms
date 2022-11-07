@@ -1,11 +1,30 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace KingForms.SingleInstance;
+namespace KingForms;
 
-internal static class SingleInstanceHelper
+public static class InstanceRestorationHelper
 {
-    public static void RestoreExistingInstance()
+    public static void Restore(InstanceRestorationMethod method)
+    {
+        if (method is InstanceRestorationMethod.ShowMainWindow)
+        {
+            ActOnWindowHandle(hWnd =>
+            {
+                NativeMethods.ShowWindow(hWnd, 9); // SW_RESTORE
+                NativeMethods.SetForegroundWindow(hWnd);
+            });
+        }
+        else if (method is InstanceRestorationMethod.SendMessageToMainWindow)
+        {
+            ActOnWindowHandle(hWnd =>
+            {
+                MessageHelper.SendMessage(hWnd, Messages.RestoreInstance.Value);
+            });
+        }
+    }
+
+    private static void ActOnWindowHandle(Action<IntPtr> action)
     {
         try
         {
@@ -27,8 +46,7 @@ internal static class SingleInstanceHelper
 
             if (existingProcess != null && existingProcess.MainWindowHandle != default)
             {
-                NativeMethods.ShowWindow(existingProcess.MainWindowHandle, 9); // SW_RESTORE
-                NativeMethods.SetForegroundWindow(existingProcess.MainWindowHandle);
+                action.Invoke(existingProcess.MainWindowHandle);
             }
         }
         catch

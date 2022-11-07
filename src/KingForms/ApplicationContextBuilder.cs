@@ -1,6 +1,4 @@
-﻿using KingForms.SingleInstance;
-
-namespace KingForms;
+﻿namespace KingForms;
 
 public class ApplicationContextBuilder
 {
@@ -9,7 +7,7 @@ public class ApplicationContextBuilder
     private Action<object, IApplicationContext> _runAction;
 
     private string _singleInstanceMutexName;
-    private bool _singleInstanceRestoreExistingInstance;
+    private InstanceRestorationMethod _singleInstanceRestorationMethod;
 
     private bool _enableVisualStyles;
     private bool _setCompatibleTextRenderingDefault;
@@ -155,10 +153,10 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, bool restoreExistingInstance)
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, InstanceRestorationMethod method)
     {
         _singleInstanceMutexName = mutexName;
-        _singleInstanceRestoreExistingInstance = restoreExistingInstance;
+        _singleInstanceRestorationMethod = method;
 
         return this;
     }
@@ -235,13 +233,10 @@ public class ApplicationContextBuilder
         Application.SetHighDpiMode(_highDpiMode);
 #endif
 
-        using var instanceScope = InstanceScopeFactory.CreateScope(_singleInstanceMutexName);
-        if (instanceScope is InstanceAlreadyInUseScope)
+        using var instanceScope = SingleInstanceScope.Create(_singleInstanceMutexName);
+        if (instanceScope.IsInstanceAlreadyInUse)
         {
-            if (_singleInstanceRestoreExistingInstance)
-            {
-                SingleInstanceHelper.RestoreExistingInstance();
-            }
+            InstanceRestorationHelper.Restore(_singleInstanceRestorationMethod);
         }
         else
         {

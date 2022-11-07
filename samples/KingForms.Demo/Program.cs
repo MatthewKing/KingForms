@@ -39,8 +39,8 @@ static class Program
 
         // A single-instance app:
         ApplicationContextBuilder.Create()
-            .WithMainForm<MainForm>()
-            .RestrictToSingleInstance("example-mutex-name", true)
+            .WithMainForm<MainFormCustomRestoration>()
+            .RestrictToSingleInstance("example-mutex-name", InstanceRestorationMethod.SendMessageToMainWindow)
             .Run();
 
         // Advanced example: A hidden form.
