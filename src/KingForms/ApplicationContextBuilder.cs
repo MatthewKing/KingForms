@@ -1,10 +1,15 @@
-﻿namespace KingForms;
+﻿using KingForms.SingleInstance;
+
+namespace KingForms;
 
 public class ApplicationContextBuilder
 {
     private IApplicationInitializer _initializer;
     private Func<SplashFormBase> _splashFormFactory;
     private Action<object, IApplicationContext> _runAction;
+
+    private string _singleInstanceMutexName;
+    private bool _singleInstanceRestoreExistingInstance;
 
     private bool _enableVisualStyles;
     private bool _setCompatibleTextRenderingDefault;
@@ -150,6 +155,14 @@ public class ApplicationContextBuilder
         return this;
     }
 
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, bool restoreExistingInstance)
+    {
+        _singleInstanceMutexName = mutexName;
+        _singleInstanceRestoreExistingInstance = restoreExistingInstance;
+
+        return this;
+    }
+
     public ApplicationContextBuilder OnStart(Action<IApplicationContext> action)
     {
         _runAction = (result, context) =>
@@ -222,9 +235,20 @@ public class ApplicationContextBuilder
         Application.SetHighDpiMode(_highDpiMode);
 #endif
 
-        var applicationContext = Build();
+        using var instanceScope = InstanceScopeFactory.CreateScope(_singleInstanceMutexName);
+        if (instanceScope is InstanceAlreadyInUseScope)
+        {
+            if (_singleInstanceRestoreExistingInstance)
+            {
+                SingleInstanceHelper.RestoreExistingInstance();
+            }
+        }
+        else
+        {
+            var applicationContext = Build();
 
-        Application.Run(applicationContext);
+            Application.Run(applicationContext);
+        }
 
         onExit?.Invoke();
     }

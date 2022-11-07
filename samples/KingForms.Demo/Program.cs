@@ -37,6 +37,12 @@ static class Program
             })
             .Run();
 
+        // A single-instance app:
+        ApplicationContextBuilder.Create()
+            .WithMainForm<MainForm>()
+            .RestrictToSingleInstance("example-mutex-name", true)
+            .Run();
+
         // Advanced example: A hidden form.
         ApplicationContextBuilder.Create()
             .OnStart(context =>
