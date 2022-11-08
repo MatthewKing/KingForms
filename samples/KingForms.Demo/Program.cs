@@ -39,6 +39,24 @@ static class Program
 
         // A single-instance app:
         ApplicationContextBuilder.Create()
+            .WithMainForm<MainForm>()
+            .RestrictToSingleInstance("example-mutex-name")
+            .Run();
+
+        // A single-instance app that shows a message if a second instance is opened:
+        ApplicationContextBuilder.Create()
+            .WithMainForm<MainForm>()
+            .RestrictToSingleInstance("example-mutex-name", () => MessageBox.Show("App is already running"))
+            .Run();
+
+        // A single-instance app that tries to restore the first instance's main window if a second instance is opened:
+        ApplicationContextBuilder.Create()
+            .WithMainForm<MainForm>()
+            .RestrictToSingleInstance("example-mutex-name", InstanceRestorationMethod.ShowMainWindow)
+            .Run();
+
+        // A single-instance app that sends a custom restoration message to the first instance if a second instance is opened:
+        ApplicationContextBuilder.Create()
             .WithMainForm<MainFormCustomRestoration>()
             .RestrictToSingleInstance("example-mutex-name", InstanceRestorationMethod.SendMessageToMainWindow)
             .Run();
