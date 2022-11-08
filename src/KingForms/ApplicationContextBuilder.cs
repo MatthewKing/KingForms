@@ -7,7 +7,7 @@ public class ApplicationContextBuilder
     private Action<object, IApplicationContext> _runAction;
 
     private string _singleInstanceMutexName;
-    private InstanceRestorationMethod _singleInstanceRestorationMethod;
+    private Action _singleInstanceAlreadyInUseAction;
 
     private bool _enableVisualStyles;
     private bool _setCompatibleTextRenderingDefault;
@@ -153,10 +153,26 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, InstanceRestorationMethod method)
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName)
     {
         _singleInstanceMutexName = mutexName;
-        _singleInstanceRestorationMethod = method;
+        _singleInstanceAlreadyInUseAction = null;
+
+        return this;
+    }
+
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, Action action)
+    {
+        _singleInstanceMutexName = mutexName;
+        _singleInstanceAlreadyInUseAction = action;
+
+        return this;
+    }
+
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, InstanceRestorationMethod restorationMethod)
+    {
+        _singleInstanceMutexName = mutexName;
+        _singleInstanceAlreadyInUseAction = () => InstanceRestorationHelper.Restore(restorationMethod);
 
         return this;
     }
@@ -236,7 +252,7 @@ public class ApplicationContextBuilder
         using var instanceScope = SingleInstanceScope.Create(_singleInstanceMutexName);
         if (instanceScope.IsInstanceAlreadyInUse)
         {
-            InstanceRestorationHelper.Restore(_singleInstanceRestorationMethod);
+            _singleInstanceAlreadyInUseAction?.Invoke();
         }
         else
         {
