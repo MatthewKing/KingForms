@@ -2,9 +2,9 @@
 
 internal class ApplicationContextImplementation : ApplicationContext
 {
-    private readonly Queue<Action<ApplicationContextStage>> _stageInitializers = new();
+    private readonly Queue<Action<ApplicationStage>> _stageInitializers = new();
 
-    public void AddStage(Action<ApplicationContextStage> stageInitializer)
+    public void AddStage(Action<ApplicationStage> stageInitializer)
     {
         _stageInitializers.Enqueue(stageInitializer);
     }
@@ -17,7 +17,7 @@ internal class ApplicationContextImplementation : ApplicationContext
         }
         else
         {
-            var stage = new ApplicationContextStage();
+            var stage = new ApplicationStage();
             stage.Completed += OnStageCompleted;
 
             var stageInitializer = _stageInitializers.Dequeue();
@@ -27,7 +27,7 @@ internal class ApplicationContextImplementation : ApplicationContext
 
     private void OnStageCompleted(object sender, EventArgs e)
     {
-        if (sender is ApplicationContextStage stage)
+        if (sender is ApplicationStage stage)
         {
             stage.Completed -= OnStageCompleted;
             Run();

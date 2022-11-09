@@ -1,6 +1,6 @@
 ﻿namespace KingForms;
 
-public sealed class ApplicationContextStage
+public sealed class ApplicationStage
 {
     public event EventHandler Completed;
 
@@ -15,12 +15,13 @@ public sealed class ApplicationContextStage
     {
         if (form is not null)
         {
+            _forms.Add(form);
+
             if (!visible)
             {
                 form.Opacity = 0;
             }
 
-            _forms.Add(form);
             form.HandleDestroyed += OnFormDestroy;
             form.Visible = true;
 

@@ -3,9 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KingForms.Demo;
 
-public class DemoInitializerWithDI : IApplicationInitializer
+public class DemoInitializerWithDI : ApplicationStageAction
 {
-    public async Task<object> InitializeAsync(ApplicationInitializationProgress progress, CancellationToken cancellationToken)
+    public async Task<object> InitializeAsync(ApplicationStageProgress progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Initializing...");
         var context = new DemoInitializationResult();

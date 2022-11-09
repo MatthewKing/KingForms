@@ -2,9 +2,9 @@
 
 public class ApplicationContextBuilder
 {
-    private IApplicationInitializer _initializer;
-    private Func<SplashFormBase> _splashFormFactory;
-    private Action<object, ApplicationContextStage> _mainStage;
+    private Func<ApplicationStageForm> _splashFormFactory;
+    private ApplicationStageAction _splashFormAction;
+    private Action<object, ApplicationStage> _mainStage;
 
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
@@ -17,7 +17,6 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder()
     {
-        _initializer = ApplicationInitializer.Empty();
         _enableVisualStyles = true;
         _setCompatibleTextRenderingDefault = false;
 #if NET5_0_OR_GREATER
@@ -48,30 +47,20 @@ public class ApplicationContextBuilder
     }
 #endif
 
-    public ApplicationContextBuilder WithInitializer(IApplicationInitializer initializer)
-    {
-        _initializer = initializer;
-
-        return this;
-    }
-
-    public ApplicationContextBuilder WithInitializer<TInitializer>()
-        where TInitializer : IApplicationInitializer, new()
-    {
-        return WithInitializer(new TInitializer());
-    }
-
-    public ApplicationContextBuilder WithSplashForm<TSplashForm>()
-        where TSplashForm : SplashFormBase, new()
+    public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>()
+        where TSplashForm : ApplicationStageForm, new()
+        where TSplashFormAction : ApplicationStageAction, new()
     {
         _splashFormFactory = () => new TSplashForm();
+        _splashFormAction = new TSplashFormAction();
 
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(Func<SplashFormBase> splashFormFactory)
+    public ApplicationContextBuilder WithSplashForm(Func<ApplicationStageForm> splashFormFactory, ApplicationStageAction splashFormAction)
     {
         _splashFormFactory = splashFormFactory;
+        _splashFormAction = splashFormAction;
 
         return this;
     }
@@ -177,7 +166,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart(Action<ApplicationContextStage> action)
+    public ApplicationContextBuilder OnStart(Action<ApplicationStage> action)
     {
         _mainStage = (result, stage) =>
         {
@@ -187,7 +176,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, ApplicationContextStage> action)
+    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, ApplicationStage> action)
     {
         _mainStage = (result, stage) =>
         {
@@ -216,18 +205,18 @@ public class ApplicationContextBuilder
             {
                 var splashForm = _splashFormFactory.Invoke();
 
-                if (_initializer is not null)
+                if (_splashFormAction is not null)
                 {
-                    splashForm.AttachInitializer(_initializer);
+                    splashForm.AttachAction(_splashFormAction);
                 }
 
                 stage.AddForm(splashForm, !splashForm.KeepHidden);
 
                 splashForm.FormClosed += (s, e) =>
                 {
-                    if (splashForm.InitializationComplete)
+                    if (splashForm.ActionComplete)
                     {
-                        context = splashForm.InitializationResult;
+                        context = splashForm.ActionResult;
                     }
                 };
             });

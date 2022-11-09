@@ -1,6 +1,6 @@
 ﻿namespace KingForms.Demo.Forms;
 
-public partial class SplashForm : SplashFormBase
+public partial class SplashForm : ApplicationStageForm
 {
     public SplashForm()
         : this(ProgressBarStyle.Marquee) { }

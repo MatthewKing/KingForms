@@ -1,15 +1,16 @@
 ﻿namespace KingForms;
 
 // Usually I'd make a class like this abstract, but that makes using the WinForms designer a bit of a hassle.
-public class SplashFormBase : Form
+public class ApplicationStageForm : Form
 {
-    public bool InitializerAttached { get; private set; } = false;
-    public bool InitializationComplete { get; protected set; } = false;
-    public object InitializationResult { get; protected set; } = null;
+    public bool ActionAttached { get; private set; } = false;
+    public bool ActionComplete { get; protected set; } = false;
+    public object ActionResult { get; protected set; } = null;
+
     public bool CanBeClosed { get; set; } = true;
     public bool KeepHidden { get; set; } = false;
 
-    public SplashFormBase()
+    public ApplicationStageForm()
     {
         FormClosing += HandleFormClosing;
     }
@@ -22,27 +23,27 @@ public class SplashFormBase : Form
         }
     }
 
-    public void AttachInitializer(IApplicationInitializer initializer)
+    public void AttachAction(ApplicationStageAction action)
     {
-        if (!InitializerAttached)
+        if (!ActionAttached)
         {
-            InitializerAttached = true;
+            ActionAttached = true;
 
             var progress = CreateApplicationInitializerProgress();
 
             Load += async (sender, e) =>
             {
-                InitializationResult = await Task.Run(async () => await initializer.InitializeAsync(progress, CancellationToken.None));
-                InitializationComplete = true;
+                ActionResult = await Task.Run(async () => await action.RunAsync(progress, CancellationToken.None));
+                ActionComplete = true;
                 CanBeClosed = true;
                 Close();
             };
         }
     }
 
-    private ApplicationInitializationProgress CreateApplicationInitializerProgress()
+    private ApplicationStageProgress CreateApplicationInitializerProgress()
     {
-        return new ApplicationInitializationProgress(
+        return new ApplicationStageProgress(
             text: new Progress<string>(progressText => ReportProgressText(progressText)),
             percent: new Progress<int>(progressPercent => ReportProgressPercent(progressPercent)));
     }

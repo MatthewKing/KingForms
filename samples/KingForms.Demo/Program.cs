@@ -10,15 +10,13 @@ static class Program
     {
         // Simple example with async initialization and a splash form:
         ApplicationContextBuilder.Create()
-            .WithInitializer<DemoInitializer>()
-            .WithSplashForm<SplashForm>()
+            .WithSplashForm<SplashForm, DemoInitializer>()
             .WithMainForm<MainForm>()
             .Run();
 
         // Async initialization, a splash form, and multiple main forms:
         ApplicationContextBuilder.Create()
-            .WithInitializer<DemoInitializer>()
-            .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous))
+            .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous), new DemoInitializer())
             .WithMainForms((DemoInitializationResult result) => new Form[] {
                 new MainForm1(result),
                 new MainForm2(result),
@@ -28,8 +26,7 @@ static class Program
 
         // As above, but also with DI/IoC:
         ApplicationContextBuilder.Create()
-            .WithInitializer<DemoInitializerWithDI>()
-            .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous))
+            .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous), new DemoInitializer())
             .WithMainForms<IServiceProvider>(services => new Form[] {
                 services.GetService<MainForm1>(),
                 services.GetService<MainForm2>(),
@@ -80,8 +77,7 @@ static class Program
 
         // Advanced example: Forms being created and shown in order.
         ApplicationContextBuilder.Create()
-            .WithInitializer<DemoInitializerWithDI>()
-            .WithSplashForm<SplashForm>()
+            .WithSplashForm<SplashForm, DemoInitializerWithDI>()
             .OnStart<IServiceProvider>((services, context) =>
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
