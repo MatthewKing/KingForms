@@ -4,6 +4,10 @@ public class ApplicationContextBuilder
 {
     private Func<ApplicationStageForm> _splashFormFactory;
     private ApplicationStageAction _splashFormAction;
+
+    private Func<ApplicationStageForm> _cleanupFormFactory;
+    private ApplicationStageAction _cleanupFormAction;
+
     private Action<object, ApplicationStage> _mainStage;
 
     private string _singleInstanceMutexName;
@@ -61,6 +65,24 @@ public class ApplicationContextBuilder
     {
         _splashFormFactory = splashFormFactory;
         _splashFormAction = splashFormAction;
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>()
+        where TCleanupForm : ApplicationStageForm, new()
+        where TCleanupFormAction : ApplicationStageAction, new()
+    {
+        _cleanupFormFactory = () => new TCleanupForm();
+        _cleanupFormAction = new TCleanupFormAction();
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithCleanupForm(Func<ApplicationStageForm> cleanupFormFactory, ApplicationStageAction cleanupFormAction)
+    {
+        _cleanupFormFactory = cleanupFormFactory;
+        _cleanupFormAction = cleanupFormAction;
 
         return this;
     }
@@ -223,6 +245,21 @@ public class ApplicationContextBuilder
         }
 
         applicationContext.AddStage(stage => _mainStage.Invoke(context, stage));
+
+        if (_cleanupFormFactory is not null)
+        {
+            applicationContext.AddStage(stage =>
+            {
+                var cleanupForm = _cleanupFormFactory.Invoke();
+
+                if (_cleanupFormAction is not null)
+                {
+                    cleanupForm.AttachAction(_cleanupFormAction);
+                }
+
+                stage.AddForm(cleanupForm, !cleanupForm.KeepHidden);
+            });
+        }
 
         applicationContext.Run();
 

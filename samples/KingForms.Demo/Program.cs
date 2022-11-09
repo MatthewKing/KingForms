@@ -14,6 +14,13 @@ static class Program
             .WithMainForm<MainForm>()
             .Run();
 
+        // Simple example with both initialization and cleanup:
+        ApplicationContextBuilder.Create()
+            .WithSplashForm<SplashForm, DemoInitializer>()
+            .WithMainForm<MainForm>()
+            .WithCleanupForm<SplashForm, DemoCleanup>()
+            .Run();
+
         // Async initialization, a splash form, and multiple main forms:
         ApplicationContextBuilder.Create()
             .WithSplashForm(() => new SplashForm(ProgressBarStyle.Continuous), new DemoInitializer())
