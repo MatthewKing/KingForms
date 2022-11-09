@@ -2,34 +2,34 @@
 
 internal class ApplicationContextImplementation : ApplicationContext
 {
-    private readonly Queue<Action<ApplicationContextPhase>> _phaseConfigurations = new();
+    private readonly Queue<Action<ApplicationContextStage>> _stageInitializers = new();
 
-    public void AddPhase(Action<ApplicationContextPhase> configuration)
+    public void AddStage(Action<ApplicationContextStage> stageInitializer)
     {
-        _phaseConfigurations.Enqueue(configuration);
+        _stageInitializers.Enqueue(stageInitializer);
     }
 
     public void Run()
     {
-        if (_phaseConfigurations.Count == 0)
+        if (_stageInitializers.Count == 0)
         {
             ExitThreadCore();
         }
         else
         {
-            var phase = new ApplicationContextPhase();
-            phase.Completed += OnPhaseCompleted;
+            var stage = new ApplicationContextStage();
+            stage.Completed += OnStageCompleted;
 
-            var phaseConfiguration = _phaseConfigurations.Dequeue();
-            phaseConfiguration?.Invoke(phase);
+            var stageInitializer = _stageInitializers.Dequeue();
+            stageInitializer?.Invoke(stage);
         }
     }
 
-    private void OnPhaseCompleted(object sender, EventArgs e)
+    private void OnStageCompleted(object sender, EventArgs e)
     {
-        if (sender is ApplicationContextPhase phase)
+        if (sender is ApplicationContextStage stage)
         {
-            phase.Completed -= OnPhaseCompleted;
+            stage.Completed -= OnStageCompleted;
             Run();
         }
     }

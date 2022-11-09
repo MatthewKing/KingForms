@@ -1,6 +1,6 @@
 ﻿namespace KingForms;
 
-public sealed class ApplicationContextPhase
+public sealed class ApplicationContextStage
 {
     public event EventHandler Completed;
 

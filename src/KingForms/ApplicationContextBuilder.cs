@@ -4,7 +4,7 @@ public class ApplicationContextBuilder
 {
     private IApplicationInitializer _initializer;
     private Func<SplashFormBase> _splashFormFactory;
-    private Action<object, ApplicationContextPhase> _mainPhase;
+    private Action<object, ApplicationContextStage> _mainStage;
 
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
@@ -78,14 +78,14 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForm<TInitializationResult>(Func<TInitializationResult, Form> mainFormFactory)
     {
-        _mainPhase = (result, phase) =>
+        _mainStage = (result, stage) =>
         {
             if (result is TInitializationResult resultT)
             {
                 var form = mainFormFactory?.Invoke(resultT);
                 if (form is not null)
                 {
-                    phase.AddForm(form, true);
+                    stage.AddForm(form, true);
                 }
             }
             else
@@ -98,12 +98,12 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
     {
-        _mainPhase = (result, context) =>
+        _mainStage = (result, stage) =>
         {
             var form = mainFormFactory?.Invoke();
             if (form is not null)
             {
-                context.AddForm(form, true);
+                stage.AddForm(form, true);
             }
         };
 
@@ -118,7 +118,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForms<TInitializationResult>(Func<TInitializationResult, IEnumerable<Form>> mainFormsFactory)
     {
-        _mainPhase = (result, context) =>
+        _mainStage = (result, stage) =>
         {
             if (result is TInitializationResult resultT)
             {
@@ -127,7 +127,7 @@ public class ApplicationContextBuilder
                 {
                     foreach (var form in forms)
                     {
-                        context.AddForm(form, true);
+                        stage.AddForm(form, true);
                     }
                 }
             }
@@ -142,11 +142,11 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForms(IEnumerable<Form> forms)
     {
-        _mainPhase = (result, context) =>
+        _mainStage = (result, stage) =>
         {
             foreach (var form in forms)
             {
-                context.AddForm(form, true);
+                stage.AddForm(form, true);
             }
         };
 
@@ -177,23 +177,23 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart(Action<ApplicationContextPhase> action)
+    public ApplicationContextBuilder OnStart(Action<ApplicationContextStage> action)
     {
-        _mainPhase = (result, phase) =>
+        _mainStage = (result, stage) =>
         {
-            action?.Invoke(phase);
+            action?.Invoke(stage);
         };
 
         return this;
     }
 
-    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, ApplicationContextPhase> action)
+    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, ApplicationContextStage> action)
     {
-        _mainPhase = (result, phase) =>
+        _mainStage = (result, stage) =>
         {
             if (result is TInitializationResult resultT)
             {
-                action?.Invoke(resultT, phase);
+                action?.Invoke(resultT, stage);
             }
             else
             {
@@ -212,7 +212,7 @@ public class ApplicationContextBuilder
 
         if (_splashFormFactory is not null)
         {
-            applicationContext.AddPhase(phase =>
+            applicationContext.AddStage(stage =>
             {
                 var splashForm = _splashFormFactory.Invoke();
 
@@ -221,7 +221,7 @@ public class ApplicationContextBuilder
                     splashForm.AttachInitializer(_initializer);
                 }
 
-                phase.AddForm(splashForm, !splashForm.KeepHidden);
+                stage.AddForm(splashForm, !splashForm.KeepHidden);
 
                 splashForm.FormClosed += (s, e) =>
                 {
@@ -233,7 +233,7 @@ public class ApplicationContextBuilder
             });
         }
 
-        applicationContext.AddPhase(phase => _mainPhase.Invoke(context, phase));
+        applicationContext.AddStage(stage => _mainStage.Invoke(context, stage));
 
         applicationContext.Run();
 
