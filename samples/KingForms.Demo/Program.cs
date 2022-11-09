@@ -67,11 +67,11 @@ static class Program
             {
                 // This one is visible:
                 var visibleForm = new MainForm();
-                context.AttachForm(visibleForm, true);
+                context.AddForm(visibleForm, true);
 
                 // This one is hidden:
                 var hiddenForm = new MainForm();
-                context.AttachForm(hiddenForm, false); // This one is hidden.
+                context.AddForm(hiddenForm, false); // This one is hidden.
 
                 // Wire up the hidden one to close when the visible one is closed:
                 visibleForm.FormClosed += (s, e) => hiddenForm.Close();
@@ -86,15 +86,15 @@ static class Program
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
                 var mainForm1 = services.GetService<MainForm1>();
-                context.AttachForm(mainForm1);
+                context.AddForm(mainForm1);
                 mainForm1.FormClosed += (s, e) =>
                 {
                     var mainForm2 = services.GetService<MainForm2>();
-                    context.AttachForm(mainForm2);
+                    context.AddForm(mainForm2);
                     mainForm2.FormClosed += (s, e) =>
                     {
                         var comboBoxDemoForm = services.GetService<ComboBoxDemoForm>();
-                        context.AttachForm(comboBoxDemoForm);
+                        context.AddForm(comboBoxDemoForm);
                     };
                 };
             })
