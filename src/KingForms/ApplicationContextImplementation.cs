@@ -2,34 +2,34 @@
 
 internal class ApplicationContextImplementation : ApplicationContext
 {
-    private readonly Queue<Action<ApplicationStage>> _stageInitializers = new();
+    private readonly Queue<Action<ApplicationScope>> _scopeInitializers = new();
 
-    public void AddStage(Action<ApplicationStage> stageInitializer)
+    public void AddScope(Action<ApplicationScope> scopeInitializer)
     {
-        _stageInitializers.Enqueue(stageInitializer);
+        _scopeInitializers.Enqueue(scopeInitializer);
     }
 
     public void Run()
     {
-        if (_stageInitializers.Count == 0)
+        if (_scopeInitializers.Count == 0)
         {
             ExitThreadCore();
         }
         else
         {
-            var stage = new ApplicationStage();
-            stage.Completed += OnStageCompleted;
+            var scope = new ApplicationScope();
+            scope.Completed += OnScopeCompleted;
 
-            var stageInitializer = _stageInitializers.Dequeue();
-            stageInitializer?.Invoke(stage);
+            var scopeInitializer = _scopeInitializers.Dequeue();
+            scopeInitializer?.Invoke(scope);
         }
     }
 
-    private void OnStageCompleted(object sender, EventArgs e)
+    private void OnScopeCompleted(object sender, EventArgs e)
     {
-        if (sender is ApplicationStage stage)
+        if (sender is ApplicationScope scope)
         {
-            stage.Completed -= OnStageCompleted;
+            scope.Completed -= OnScopeCompleted;
             Run();
         }
     }

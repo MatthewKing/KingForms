@@ -2,13 +2,13 @@
 
 public class ApplicationContextBuilder
 {
-    private Func<ApplicationStageForm> _splashFormFactory;
-    private ApplicationStageAction _splashFormAction;
+    private Func<ApplicationActionForm> _splashFormFactory;
+    private ApplicationAction _splashFormAction;
 
-    private Func<ApplicationStageForm> _cleanupFormFactory;
-    private ApplicationStageAction _cleanupFormAction;
+    private Func<ApplicationActionForm> _cleanupFormFactory;
+    private ApplicationAction _cleanupFormAction;
 
-    private Action<object, ApplicationStage> _mainStage;
+    private Action<object, ApplicationScope> _main;
 
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
@@ -52,8 +52,8 @@ public class ApplicationContextBuilder
 #endif
 
     public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>()
-        where TSplashForm : ApplicationStageForm, new()
-        where TSplashFormAction : ApplicationStageAction, new()
+        where TSplashForm : ApplicationActionForm, new()
+        where TSplashFormAction : ApplicationAction, new()
     {
         _splashFormFactory = () => new TSplashForm();
         _splashFormAction = new TSplashFormAction();
@@ -61,7 +61,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(Func<ApplicationStageForm> splashFormFactory, ApplicationStageAction splashFormAction)
+    public ApplicationContextBuilder WithSplashForm(Func<ApplicationActionForm> splashFormFactory, ApplicationAction splashFormAction)
     {
         _splashFormFactory = splashFormFactory;
         _splashFormAction = splashFormAction;
@@ -70,8 +70,8 @@ public class ApplicationContextBuilder
     }
 
     public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>()
-        where TCleanupForm : ApplicationStageForm, new()
-        where TCleanupFormAction : ApplicationStageAction, new()
+        where TCleanupForm : ApplicationActionForm, new()
+        where TCleanupFormAction : ApplicationAction, new()
     {
         _cleanupFormFactory = () => new TCleanupForm();
         _cleanupFormAction = new TCleanupFormAction();
@@ -79,7 +79,7 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithCleanupForm(Func<ApplicationStageForm> cleanupFormFactory, ApplicationStageAction cleanupFormAction)
+    public ApplicationContextBuilder WithCleanupForm(Func<ApplicationActionForm> cleanupFormFactory, ApplicationAction cleanupFormAction)
     {
         _cleanupFormFactory = cleanupFormFactory;
         _cleanupFormAction = cleanupFormAction;
@@ -87,21 +87,21 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder WithMainForm<TInitializationResult>(Func<TInitializationResult, Form> mainFormFactory)
+    public ApplicationContextBuilder WithMainForm<TResult>(Func<TResult, Form> mainFormFactory)
     {
-        _mainStage = (result, stage) =>
+        _main = (result, scope) =>
         {
-            if (result is TInitializationResult resultT)
+            if (result is TResult resultT)
             {
                 var form = mainFormFactory?.Invoke(resultT);
                 if (form is not null)
                 {
-                    stage.AddForm(form, true);
+                    scope.AddForm(form, true);
                 }
             }
             else
             {
-                throw new ApplicationInitializationException($"Application initialization returned {result.GetType().Name} but expected {typeof(TInitializationResult).Name}.");
+                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
             }
         };
         return this;
@@ -109,12 +109,12 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
     {
-        _mainStage = (result, stage) =>
+        _main = (_, scope) =>
         {
             var form = mainFormFactory?.Invoke();
             if (form is not null)
             {
-                stage.AddForm(form, true);
+                scope.AddForm(form, true);
             }
         };
 
@@ -127,24 +127,24 @@ public class ApplicationContextBuilder
         return WithMainForm(() => new TForm());
     }
 
-    public ApplicationContextBuilder WithMainForms<TInitializationResult>(Func<TInitializationResult, IEnumerable<Form>> mainFormsFactory)
+    public ApplicationContextBuilder WithMainForms<TResult>(Func<TResult, IEnumerable<Form>> mainFormsFactory)
     {
-        _mainStage = (result, stage) =>
+        _main = (result, scope) =>
         {
-            if (result is TInitializationResult resultT)
+            if (result is TResult resultT)
             {
                 var forms = mainFormsFactory?.Invoke(resultT);
                 if (forms is not null)
                 {
                     foreach (var form in forms)
                     {
-                        stage.AddForm(form, true);
+                        scope.AddForm(form, true);
                     }
                 }
             }
             else
             {
-                throw new ApplicationInitializationException($"Application initialization returned {result.GetType().Name} but expected {typeof(TInitializationResult).Name}.");
+                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
             }
         };
 
@@ -153,11 +153,11 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForms(IEnumerable<Form> forms)
     {
-        _mainStage = (result, stage) =>
+        _main = (_, scope) =>
         {
             foreach (var form in forms)
             {
-                stage.AddForm(form, true);
+                scope.AddForm(form, true);
             }
         };
 
@@ -188,27 +188,27 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart(Action<ApplicationStage> action)
+    public ApplicationContextBuilder OnStart(Action<ApplicationScope> action)
     {
-        _mainStage = (result, stage) =>
+        _main = (_, scope) =>
         {
-            action?.Invoke(stage);
+            action?.Invoke(scope);
         };
 
         return this;
     }
 
-    public ApplicationContextBuilder OnStart<TInitializationResult>(Action<TInitializationResult, ApplicationStage> action)
+    public ApplicationContextBuilder OnStart<TResult>(Action<TResult, ApplicationScope> action)
     {
-        _mainStage = (result, stage) =>
+        _main = (result, scope) =>
         {
-            if (result is TInitializationResult resultT)
+            if (result is TResult resultT)
             {
-                action?.Invoke(resultT, stage);
+                action?.Invoke(resultT, scope);
             }
             else
             {
-                throw new ApplicationInitializationException($"Application initialization returned {result.GetType().Name} but expected {typeof(TInitializationResult).Name}.");
+                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
             }
         };
 
@@ -223,7 +223,7 @@ public class ApplicationContextBuilder
 
         if (_splashFormFactory is not null)
         {
-            applicationContext.AddStage(stage =>
+            applicationContext.AddScope(scope =>
             {
                 var splashForm = _splashFormFactory.Invoke();
 
@@ -232,11 +232,11 @@ public class ApplicationContextBuilder
                     splashForm.AttachAction(_splashFormAction);
                 }
 
-                stage.AddForm(splashForm, !splashForm.KeepHidden);
+                scope.AddForm(splashForm, !splashForm.KeepHidden);
 
                 splashForm.FormClosed += (s, e) =>
                 {
-                    if (splashForm.ActionComplete)
+                    if (splashForm.IsActionComplete)
                     {
                         context = splashForm.ActionResult;
                     }
@@ -244,11 +244,11 @@ public class ApplicationContextBuilder
             });
         }
 
-        applicationContext.AddStage(stage => _mainStage.Invoke(context, stage));
+        applicationContext.AddScope(scope => _main.Invoke(context, scope));
 
         if (_cleanupFormFactory is not null)
         {
-            applicationContext.AddStage(stage =>
+            applicationContext.AddScope(scope =>
             {
                 var cleanupForm = _cleanupFormFactory.Invoke();
 
@@ -257,7 +257,7 @@ public class ApplicationContextBuilder
                     cleanupForm.AttachAction(_cleanupFormAction);
                 }
 
-                stage.AddForm(cleanupForm, !cleanupForm.KeepHidden);
+                scope.AddForm(cleanupForm, !cleanupForm.KeepHidden);
             });
         }
 

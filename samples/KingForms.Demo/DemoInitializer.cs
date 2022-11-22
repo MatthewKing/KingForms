@@ -1,8 +1,8 @@
 ﻿namespace KingForms.Demo;
 
-public class DemoInitializer : ApplicationStageAction
+public class DemoInitializer : ApplicationAction
 {
-    public override async Task<object> RunAsync(ApplicationStageProgress progress, CancellationToken cancellationToken)
+    public override async Task<object> RunAsync(ApplicationActionProgress progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Initializing...");
         var context = new DemoInitializationResult();

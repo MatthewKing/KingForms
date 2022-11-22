@@ -1,8 +1,8 @@
 ﻿namespace KingForms.Demo;
 
-public class DemoCleanup : ApplicationStageAction
+public class DemoCleanup : ApplicationAction
 {
-    public override async Task<object> RunAsync(ApplicationStageProgress progress, CancellationToken cancellationToken)
+    public override async Task<object> RunAsync(ApplicationActionProgress progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Saving files...");
         await Task.Delay(1000);

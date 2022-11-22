@@ -1,16 +1,17 @@
 ﻿namespace KingForms;
 
 // Usually I'd make a class like this abstract, but that makes using the WinForms designer a bit of a hassle.
-public class ApplicationStageForm : Form
+
+public class ApplicationActionForm : Form
 {
-    public bool ActionAttached { get; private set; } = false;
-    public bool ActionComplete { get; protected set; } = false;
+    public bool IsActionAttached { get; private set; } = false;
+    public bool IsActionComplete { get; protected set; } = false;
     public object ActionResult { get; protected set; } = null;
 
     public bool CanBeClosed { get; set; } = true;
     public bool KeepHidden { get; set; } = false;
 
-    public ApplicationStageForm()
+    public ApplicationActionForm()
     {
         FormClosing += HandleFormClosing;
     }
@@ -23,38 +24,38 @@ public class ApplicationStageForm : Form
         }
     }
 
-    public void AttachAction(ApplicationStageAction action)
+    public void AttachAction(ApplicationAction action)
     {
-        if (!ActionAttached)
+        if (!IsActionAttached)
         {
-            ActionAttached = true;
+            IsActionAttached = true;
 
-            var progress = CreateApplicationInitializerProgress();
+            var progress = CreateProgress();
 
             Load += async (sender, e) =>
             {
                 ActionResult = await Task.Run(async () => await action.RunAsync(progress, CancellationToken.None));
-                ActionComplete = true;
+                IsActionComplete = true;
                 CanBeClosed = true;
                 Close();
             };
         }
     }
 
-    private ApplicationStageProgress CreateApplicationInitializerProgress()
+    private ApplicationActionProgress CreateProgress()
     {
-        return new ApplicationStageProgress(
-            text: new Progress<string>(progressText => ReportProgressText(progressText)),
-            percent: new Progress<int>(progressPercent => ReportProgressPercent(progressPercent)));
+        return new ApplicationActionProgress(
+            text: new Progress<string>(ReportProgressText),
+            percent: new Progress<int>(ReportProgressPercent));
     }
 
     protected virtual void ReportProgressText(string progressText)
     {
-
+        // Descendants should implement this as required.
     }
 
     protected virtual void ReportProgressPercent(int progressPercent)
     {
-
+        // Descendants should implement this as required.
     }
 }
