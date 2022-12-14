@@ -1,15 +1,16 @@
 ﻿namespace KingForms.Demo.Forms;
 
-public partial class SplashForm : ApplicationActionForm
+public partial class SplashFormWithProgress : Form, IProgressForm
 {
-    public SplashForm()
+    public SplashFormWithProgress()
         : this(ProgressBarStyle.Marquee) { }
 
-    public SplashForm(ProgressBarStyle style)
+    public SplashFormWithProgress(ProgressBarStyle style)
     {
         InitializeComponent();
 
         uxProgressBar.Style = style;
+        uxProgressLabel.Text = "Loading...";
     }
 
     private void SplashForm_Load(object sender, EventArgs e)
@@ -17,12 +18,12 @@ public partial class SplashForm : ApplicationActionForm
         CenterToScreen();
     }
 
-    protected override void ReportProgressText(string progressText)
+    public void ReportProgressText(string progressText)
     {
         uxProgressLabel.Text = progressText;
     }
 
-    protected override void ReportProgressPercent(int progressPercent)
+    public void ReportProgressPercent(int progressPercent)
     {
         uxProgressBar.Value = progressPercent;
     }

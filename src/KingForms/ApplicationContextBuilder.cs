@@ -2,13 +2,9 @@
 
 public class ApplicationContextBuilder
 {
-    private Func<ApplicationActionForm> _splashFormFactory;
-    private ApplicationAction _splashFormAction;
-
-    private Func<ApplicationActionForm> _cleanupFormFactory;
-    private ApplicationAction _cleanupFormAction;
-
+    private Action<ApplicationScope, Action<object>> _splash;
     private Action<object, ApplicationScope> _main;
+    private Action<ApplicationScope> _cleanup;
 
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
@@ -51,38 +47,64 @@ public class ApplicationContextBuilder
     }
 #endif
 
-    public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>()
-        where TSplashForm : ApplicationActionForm, new()
+    public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>(bool keepHidden = false)
+        where TSplashForm : Form, new()
         where TSplashFormAction : ApplicationAction, new()
     {
-        _splashFormFactory = () => new TSplashForm();
-        _splashFormAction = new TSplashFormAction();
+        _splash = (scope, onComplete) =>
+        {
+            var splashForm = new TSplashForm();
+            var splashFormAction = new TSplashFormAction();
+
+            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
+
+            scope.AddForm(splashForm, !keepHidden);
+        };
 
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(Func<ApplicationActionForm> splashFormFactory, ApplicationAction splashFormAction)
+    public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, ApplicationAction splashFormAction, bool keepHidden = false)
     {
-        _splashFormFactory = splashFormFactory;
-        _splashFormAction = splashFormAction;
+        _splash = (scope, onComplete) =>
+        {
+            var splashForm = splashFormFactory?.Invoke();
+
+            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
+
+            scope.AddForm(splashForm, !keepHidden);
+        };
 
         return this;
     }
 
-    public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>()
-        where TCleanupForm : ApplicationActionForm, new()
+    public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>(bool keepHidden = false)
+        where TCleanupForm : Form, new()
         where TCleanupFormAction : ApplicationAction, new()
     {
-        _cleanupFormFactory = () => new TCleanupForm();
-        _cleanupFormAction = new TCleanupFormAction();
+        _cleanup = scope =>
+        {
+            var cleanupForm = new TCleanupForm();
+            var cleanupFormAction = new TCleanupFormAction();
+
+            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
+
+            scope.AddForm(cleanupForm, !keepHidden);
+        };
 
         return this;
     }
 
-    public ApplicationContextBuilder WithCleanupForm(Func<ApplicationActionForm> cleanupFormFactory, ApplicationAction cleanupFormAction)
+    public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, ApplicationAction cleanupFormAction, bool keepHidden = false)
     {
-        _cleanupFormFactory = cleanupFormFactory;
-        _cleanupFormAction = cleanupFormAction;
+        _splash = (scope, onComplete) =>
+        {
+            var cleanupForm = cleanupFormFactory?.Invoke();
+
+            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
+
+            scope.AddForm(cleanupForm, !keepHidden);
+        };
 
         return this;
     }
@@ -221,43 +243,24 @@ public class ApplicationContextBuilder
 
         object context = null;
 
-        if (_splashFormFactory is not null)
+        if (_splash is not null)
         {
             applicationContext.AddScope(scope =>
             {
-                var splashForm = _splashFormFactory.Invoke();
-
-                if (_splashFormAction is not null)
+                _splash.Invoke(scope, result =>
                 {
-                    splashForm.AttachAction(_splashFormAction);
-                }
-
-                scope.AddForm(splashForm, !splashForm.KeepHidden);
-
-                splashForm.FormClosed += (s, e) =>
-                {
-                    if (splashForm.IsActionComplete)
-                    {
-                        context = splashForm.ActionResult;
-                    }
-                };
+                    context = result;
+                });
             });
         }
 
         applicationContext.AddScope(scope => _main.Invoke(context, scope));
 
-        if (_cleanupFormFactory is not null)
+        if (_cleanup is not null)
         {
             applicationContext.AddScope(scope =>
             {
-                var cleanupForm = _cleanupFormFactory.Invoke();
-
-                if (_cleanupFormAction is not null)
-                {
-                    cleanupForm.AttachAction(_cleanupFormAction);
-                }
-
-                scope.AddForm(cleanupForm, !cleanupForm.KeepHidden);
+                _cleanup.Invoke(scope);
             });
         }
 
@@ -323,5 +326,35 @@ public class ApplicationContextBuilder
     public static ApplicationContextBuilder Create()
     {
         return new ApplicationContextBuilder();
+    }
+
+    private static void AttachApplicationActionToForm(Form form, ApplicationAction action, Action<object> onComplete = null)
+    {
+        bool canBeClosed = false;
+
+        form.Load += async (sender, e) =>
+        {
+            if (action is not null)
+            {
+                var progress = form is IProgressForm progressForm
+                    ? new ApplicationActionProgress(progressForm.ReportProgressText, progressForm.ReportProgressPercent)
+                    : ApplicationActionProgress.None;
+
+                var result = await Task.Run(async () => await action.RunAsync(progress, CancellationToken.None));
+
+                onComplete?.Invoke(result);
+            }
+
+            canBeClosed = true;
+            form.Close();
+        };
+
+        form.FormClosing += (sender, e) =>
+        {
+            if (e.CloseReason is CloseReason.UserClosing && !canBeClosed)
+            {
+                e.Cancel = true;
+            }
+        };
     }
 }

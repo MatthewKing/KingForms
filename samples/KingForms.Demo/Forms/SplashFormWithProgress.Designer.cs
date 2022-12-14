@@ -1,6 +1,6 @@
 ﻿namespace KingForms.Demo.Forms;
 
-partial class SplashForm
+partial class SplashFormWithProgress
 {
     /// <summary>
     /// Required designer variable.
