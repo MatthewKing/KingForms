@@ -11,7 +11,7 @@
     <RepositoryUrl>https://github.com/MatthewKing/KingForms</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>winforms windows forms</PackageTags>
-    <Version>0.0.8</Version>
+    <Version>0.0.9</Version>
   </PropertyGroup>
 
   <PropertyGroup>
