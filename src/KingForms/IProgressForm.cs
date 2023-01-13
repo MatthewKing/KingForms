@@ -3,5 +3,5 @@
 public interface IProgressForm
 {
     void ReportProgressText(string progressText);
-    void ReportProgressPercent(int progressPercent);
+    void ReportProgressPercent(double progressPercent);
 }

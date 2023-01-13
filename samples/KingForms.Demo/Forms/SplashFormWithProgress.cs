@@ -23,8 +23,8 @@ public partial class SplashFormWithProgress : Form, IProgressForm
         uxProgressLabel.Text = progressText;
     }
 
-    public void ReportProgressPercent(int progressPercent)
+    public void ReportProgressPercent(double progressPercent)
     {
-        uxProgressBar.Value = progressPercent;
+        uxProgressBar.Value = Math.Clamp((int)(progressPercent * 100), 0, 100);
     }
 }

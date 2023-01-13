@@ -6,26 +6,26 @@ public class DemoInitializer : ApplicationAction
     {
         progress.Text.Report("Initializing...");
         var context = new DemoInitializationResult();
-        progress.Percent.Report(20);
+        progress.Percent.Report(0.2);
 
         progress.Text.Report("Connecting to web service...");
         await ConnectToWebService();
-        progress.Percent.Report(40);
+        progress.Percent.Report(0.4);
 
         progress.Text.Report("Acquiring license...");
         await AcquireLicense();
-        progress.Percent.Report(60);
+        progress.Percent.Report(0.6);
 
         progress.Text.Report("Loading information from database...");
         context.Data = await LoadInformationFromDatabase();
-        progress.Percent.Report(80);
+        progress.Percent.Report(0.8);
 
         progress.Text.Report("Preparing assets...");
         context.Assets = await PrepareAssets();
-        progress.Percent.Report(100);
+        progress.Percent.Report(1.0);
 
         progress.Text.Report("Ready to launch!");
-        await Task.Delay(500);
+        await Task.Delay(1000);
 
         return context;
     }

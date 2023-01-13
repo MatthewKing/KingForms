@@ -6,19 +6,18 @@ public class DemoCleanup : ApplicationAction
     {
         progress.Text.Report("Saving files...");
         await Task.Delay(1000);
-        progress.Percent.Report(33);
+        progress.Percent.Report(0.33);
 
         progress.Text.Report("Closing sockets...");
         await Task.Delay(1000);
-        progress.Percent.Report(66);
+        progress.Percent.Report(0.66);
 
         progress.Text.Report("Defragmenting database...");
         await Task.Delay(1000);
-        progress.Percent.Report(99);
+        progress.Percent.Report(1.0);
 
         progress.Text.Report("Done! Application will now close.");
         await Task.Delay(1000);
-        progress.Percent.Report(100);
 
         return null;
     }
