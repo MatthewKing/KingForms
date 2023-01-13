@@ -18,10 +18,18 @@ internal class ApplicationContextImplementation : ApplicationContext
         else
         {
             var scope = new ApplicationScope();
-            scope.Completed += OnScopeCompleted;
 
             var scopeInitializer = _scopeInitializers.Dequeue();
             scopeInitializer?.Invoke(scope);
+
+            if (scope.HasForms)
+            {
+                scope.Completed += OnScopeCompleted;
+            }
+            else
+            {
+                Run();
+            }
         }
     }
 

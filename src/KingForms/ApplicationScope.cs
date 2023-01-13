@@ -6,6 +6,8 @@ public class ApplicationScope
 
     private readonly IList<Form> _forms = new List<Form>();
 
+    public bool HasForms => _forms.Count > 0;
+
     public void AddForm(Form form)
     {
         AddForm(form, true);
