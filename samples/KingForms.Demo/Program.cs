@@ -71,9 +71,21 @@ static class Program
             .RestrictToSingleInstance("example-mutex-name", InstanceRestorationMethod.SendMessageToMainWindow)
             .Run();
 
+        // Advanced example: Application lifecycle events:
+        ApplicationContextBuilder.Create()
+            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), new DemoInitializer())
+            .OnRun<DemoInitializationResult>((result, scope) =>
+            {
+                scope.AddForm(new MainForm1(result), visible: true);
+                scope.AddForm(new MainForm2(result), visible: true);
+            })
+            .OnPreRun<DemoInitializationResult>((result, scope) => MessageBox.Show($"This occurs BEFORE the application runs, but still has access to the initialization result. As proof, it can access the result ID: {result.Id}."))
+            .OnPostRun<DemoInitializationResult>((result, scope) => MessageBox.Show($"This occurs AFTER the application runs, but still has access to the initialization result. As proof, it can access the result ID: {result.Id}."))
+            .Run();
+
         // Advanced example: A hidden form.
         ApplicationContextBuilder.Create()
-            .OnStart(context =>
+            .OnRun(context =>
             {
                 // This one is visible:
                 var visibleForm = new MainForm();
@@ -91,7 +103,7 @@ static class Program
         // Advanced example: Forms being created and shown in order.
         ApplicationContextBuilder.Create()
             .WithSplashForm<SplashFormWithProgress, DemoInitializerWithDI>()
-            .OnStart<IServiceProvider>((services, context) =>
+            .OnRun<IServiceProvider>((services, context) =>
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
                 var mainForm1 = services.GetService<MainForm1>();

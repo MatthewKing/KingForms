@@ -6,6 +6,7 @@ public class DemoInitializer : ApplicationAction
     {
         progress.Text.Report("Initializing...");
         var context = new DemoInitializationResult();
+        context.Id = Guid.NewGuid();
         progress.Percent.Report(0.2);
 
         progress.Text.Report("Connecting to web service...");

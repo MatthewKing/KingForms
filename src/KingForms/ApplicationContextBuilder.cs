@@ -2,9 +2,10 @@
 
 public class ApplicationContextBuilder
 {
-    private Action<ApplicationScope, Action<object>> _splash;
-    private Action<object, ApplicationScope> _main;
-    private Action<ApplicationScope> _cleanup;
+    private Action<ApplicationScope, Action<object>> _onInitialize;
+    private Action<object, ApplicationScope> _onPreRun;
+    private Action<object, ApplicationScope> _onRun;
+    private Action<object, ApplicationScope> _onPostRun;
 
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
@@ -51,7 +52,7 @@ public class ApplicationContextBuilder
         where TSplashForm : Form, new()
         where TSplashFormAction : ApplicationAction, new()
     {
-        _splash = (scope, onComplete) =>
+        _onInitialize = (scope, onComplete) =>
         {
             var splashForm = new TSplashForm();
             var splashFormAction = new TSplashFormAction();
@@ -66,7 +67,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, ApplicationAction splashFormAction, bool keepHidden = false)
     {
-        _splash = (scope, onComplete) =>
+        _onInitialize = (scope, onComplete) =>
         {
             var splashForm = splashFormFactory?.Invoke();
 
@@ -82,7 +83,7 @@ public class ApplicationContextBuilder
         where TCleanupForm : Form, new()
         where TCleanupFormAction : ApplicationAction, new()
     {
-        _cleanup = scope =>
+        _onPostRun = (result, scope) =>
         {
             var cleanupForm = new TCleanupForm();
             var cleanupFormAction = new TCleanupFormAction();
@@ -97,7 +98,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, ApplicationAction cleanupFormAction, bool keepHidden = false)
     {
-        _splash = (scope, onComplete) =>
+        _onInitialize = (scope, onComplete) =>
         {
             var cleanupForm = cleanupFormFactory?.Invoke();
 
@@ -111,7 +112,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForm<TResult>(Func<TResult, Form> mainFormFactory)
     {
-        _main = (result, scope) =>
+        _onRun = (result, scope) =>
         {
             if (result is TResult resultT)
             {
@@ -131,7 +132,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
     {
-        _main = (_, scope) =>
+        _onRun = (_, scope) =>
         {
             var form = mainFormFactory?.Invoke();
             if (form is not null)
@@ -151,7 +152,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForms<TResult>(Func<TResult, IEnumerable<Form>> mainFormsFactory)
     {
-        _main = (result, scope) =>
+        _onRun = (result, scope) =>
         {
             if (result is TResult resultT)
             {
@@ -175,7 +176,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithMainForms(IEnumerable<Form> forms)
     {
-        _main = (_, scope) =>
+        _onRun = (_, scope) =>
         {
             foreach (var form in forms)
             {
@@ -210,9 +211,9 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart(Action<ApplicationScope> action)
+    public ApplicationContextBuilder OnPreRun(Action<ApplicationScope> action)
     {
-        _main = (_, scope) =>
+        _onPreRun = (_, scope) =>
         {
             action?.Invoke(scope);
         };
@@ -220,9 +221,63 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnStart<TResult>(Action<TResult, ApplicationScope> action)
+    public ApplicationContextBuilder OnPreRun<TResult>(Action<TResult, ApplicationScope> action)
     {
-        _main = (result, scope) =>
+        _onPreRun = (result, scope) =>
+        {
+            if (result is TResult resultT)
+            {
+                action?.Invoke(resultT, scope);
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
+            }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnRun(Action<ApplicationScope> action)
+    {
+        _onRun = (_, scope) =>
+        {
+            action?.Invoke(scope);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnRun<TResult>(Action<TResult, ApplicationScope> action)
+    {
+        _onRun = (result, scope) =>
+        {
+            if (result is TResult resultT)
+            {
+                action?.Invoke(resultT, scope);
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
+            }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnPostRun(Action<ApplicationScope> action)
+    {
+        _onPostRun = (_, scope) =>
+        {
+            action?.Invoke(scope);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder OnPostRun<TResult>(Action<TResult, ApplicationScope> action)
+    {
+        _onPostRun = (result, scope) =>
         {
             if (result is TResult resultT)
             {
@@ -243,25 +298,30 @@ public class ApplicationContextBuilder
 
         object context = null;
 
-        if (_splash is not null)
+        if (_onInitialize is not null)
         {
             applicationContext.AddScope(scope =>
             {
-                _splash.Invoke(scope, result =>
+                _onInitialize.Invoke(scope, result =>
                 {
                     context = result;
                 });
             });
         }
 
-        applicationContext.AddScope(scope => _main.Invoke(context, scope));
-
-        if (_cleanup is not null)
+        if (_onPreRun is not null)
         {
-            applicationContext.AddScope(scope =>
-            {
-                _cleanup.Invoke(scope);
-            });
+            applicationContext.AddScope(scope => _onPreRun.Invoke(context, scope));
+        }
+
+        if (_onRun is not null)
+        {
+            applicationContext.AddScope(scope => _onRun.Invoke(context, scope));
+        }
+
+        if (_onPostRun is not null)
+        {
+            applicationContext.AddScope(scope => _onPostRun.Invoke(context, scope));
         }
 
         applicationContext.Run();
