@@ -5,7 +5,7 @@ namespace KingForms.Demo;
 
 public class DemoInitializerWithDI : ApplicationAction
 {
-    public override async Task<object> RunAsync(ApplicationActionProgress progress, CancellationToken cancellationToken)
+    public override async Task<object> RunAsync(IProgress<ApplicationProgress> progress, CancellationToken cancellationToken)
     {
         progress.Text.Report("Initializing...");
         var context = new DemoInitializationResult();

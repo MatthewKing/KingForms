@@ -202,7 +202,7 @@ public class ApplicationContextBuilder
 
         return this;
     }
-    
+
     public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, Action<IntPtr> action)
     {
         _singleInstanceMutexName = mutexName;
@@ -404,9 +404,9 @@ public class ApplicationContextBuilder
         {
             if (action is not null)
             {
-                var progress = form is IProgressForm progressForm
-                    ? new ApplicationActionProgress(progressForm.ReportProgressText, progressForm.ReportProgressPercent)
-                    : ApplicationActionProgress.None;
+                var progress = form is IProgressFactory<ApplicationProgress> progressFactory
+                    ? progressFactory.GetProgress()
+                    : new Progress<ApplicationProgress>();
 
                 var result = await Task.Run(async () => await action.RunAsync(progress, CancellationToken.None));
 

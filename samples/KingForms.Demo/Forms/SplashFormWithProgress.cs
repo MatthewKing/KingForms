@@ -1,6 +1,6 @@
 ﻿namespace KingForms.Demo.Forms;
 
-public partial class SplashFormWithProgress : Form, IProgressForm
+public partial class SplashFormWithProgress : Form, IProgressFactory<ApplicationProgress>
 {
     public SplashFormWithProgress()
         : this(ProgressBarStyle.Marquee) { }
@@ -18,13 +18,16 @@ public partial class SplashFormWithProgress : Form, IProgressForm
         CenterToScreen();
     }
 
-    public void ReportProgressText(string progressText)
+    public IProgress<ApplicationProgress> GetProgress()
     {
-        uxProgressLabel.Text = progressText;
-    }
+        return new Progress<ApplicationProgress>(x =>
+        {
+            uxProgressLabel.Text = x.Text;
 
-    public void ReportProgressPercent(double progressPercent)
-    {
-        uxProgressBar.Value = Math.Clamp((int)(progressPercent * 100), 0, 100);
+            if (x.Percent.HasValue)
+            {
+                uxProgressBar.Value = Math.Clamp((int)(x.Percent.Value * 100), 0, 100);
+            }
+        });
     }
 }
