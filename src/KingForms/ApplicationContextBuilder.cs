@@ -202,6 +202,14 @@ public class ApplicationContextBuilder
 
         return this;
     }
+    
+    public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, Action<IntPtr> action)
+    {
+        _singleInstanceMutexName = mutexName;
+        _singleInstanceAlreadyInUseAction = () => InstanceRestorationHelper.ActOnWindowHandle(action);
+
+        return this;
+    }
 
     public ApplicationContextBuilder RestrictToSingleInstance(string mutexName, InstanceRestorationMethod restorationMethod)
     {

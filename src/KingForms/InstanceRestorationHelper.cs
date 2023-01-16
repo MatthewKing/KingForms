@@ -24,7 +24,7 @@ public static class InstanceRestorationHelper
         }
     }
 
-    private static void ActOnWindowHandle(Action<IntPtr> action)
+    public static void ActOnWindowHandle(Action<IntPtr> action)
     {
         try
         {
