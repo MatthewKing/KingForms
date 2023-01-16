@@ -48,68 +48,6 @@ public class ApplicationContextBuilder
     }
 #endif
 
-    public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>(bool keepHidden = false)
-        where TSplashForm : Form, new()
-        where TSplashFormAction : ApplicationAction, new()
-    {
-        _onInitialize = (scope, onComplete) =>
-        {
-            var splashForm = new TSplashForm();
-            var splashFormAction = new TSplashFormAction();
-
-            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
-
-            scope.AddForm(splashForm, !keepHidden);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, ApplicationAction splashFormAction, bool keepHidden = false)
-    {
-        _onInitialize = (scope, onComplete) =>
-        {
-            var splashForm = splashFormFactory?.Invoke();
-
-            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
-
-            scope.AddForm(splashForm, !keepHidden);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>(bool keepHidden = false)
-        where TCleanupForm : Form, new()
-        where TCleanupFormAction : ApplicationAction, new()
-    {
-        _onPostRun = (result, scope) =>
-        {
-            var cleanupForm = new TCleanupForm();
-            var cleanupFormAction = new TCleanupFormAction();
-
-            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
-
-            scope.AddForm(cleanupForm, !keepHidden);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, ApplicationAction cleanupFormAction, bool keepHidden = false)
-    {
-        _onPostRun = (result, scope) =>
-        {
-            var cleanupForm = cleanupFormFactory?.Invoke();
-
-            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
-
-            scope.AddForm(cleanupForm, !keepHidden);
-        };
-
-        return this;
-    }
-
     public ApplicationContextBuilder WithMainForm<TResult>(Func<TResult, Form> mainFormFactory)
     {
         _onRun = (result, scope) =>
@@ -182,6 +120,68 @@ public class ApplicationContextBuilder
             {
                 scope.AddForm(form, true);
             }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithSplashForm<TSplashForm, TSplashFormAction>(bool keepHidden = false)
+        where TSplashForm : Form, new()
+        where TSplashFormAction : ApplicationAction, new()
+    {
+        _onInitialize = (scope, onComplete) =>
+        {
+            var splashForm = new TSplashForm();
+            var splashFormAction = new TSplashFormAction();
+
+            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
+
+            scope.AddForm(splashForm, !keepHidden);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, ApplicationAction splashFormAction, bool keepHidden = false)
+    {
+        _onInitialize = (scope, onComplete) =>
+        {
+            var splashForm = splashFormFactory?.Invoke();
+
+            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
+
+            scope.AddForm(splashForm, !keepHidden);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithCleanupForm<TCleanupForm, TCleanupFormAction>(bool keepHidden = false)
+        where TCleanupForm : Form, new()
+        where TCleanupFormAction : ApplicationAction, new()
+    {
+        _onPostRun = (result, scope) =>
+        {
+            var cleanupForm = new TCleanupForm();
+            var cleanupFormAction = new TCleanupFormAction();
+
+            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
+
+            scope.AddForm(cleanupForm, !keepHidden);
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, ApplicationAction cleanupFormAction, bool keepHidden = false)
+    {
+        _onPostRun = (result, scope) =>
+        {
+            var cleanupForm = cleanupFormFactory?.Invoke();
+
+            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
+
+            scope.AddForm(cleanupForm, !keepHidden);
         };
 
         return this;
