@@ -98,7 +98,7 @@ public class ApplicationContextBuilder
 
     public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, ApplicationAction cleanupFormAction, bool keepHidden = false)
     {
-        _onInitialize = (scope, onComplete) =>
+        _onPostRun = (result, scope) =>
         {
             var cleanupForm = cleanupFormFactory?.Invoke();
 
