@@ -10,26 +10,26 @@ static class Program
     {
         // Simple example with async initialization and a splash form:
         ApplicationContextBuilder.Create()
-            .WithSplashForm<SplashFormWithProgress, DemoInitializer>()
+            .WithSplashForm<SplashFormWithProgress>(DemoInitializer.RunAsync)
             .WithMainForm<MainForm>()
             .Run();
 
         // As above, but with a very simple splash form without progress indicators.
         ApplicationContextBuilder.Create()
-            .WithSplashForm<SplashFormWithoutProgress, DemoInitializer>()
+            .WithSplashForm<SplashFormWithoutProgress>(DemoInitializer.RunAsync)
             .WithMainForm<MainForm>()
             .Run();
 
         // Simple example with both initialization and cleanup:
         ApplicationContextBuilder.Create()
-            .WithSplashForm<SplashFormWithProgress, DemoInitializer>()
+            .WithSplashForm<SplashFormWithProgress>(DemoInitializer.RunAsync)
             .WithMainForm<MainForm>()
-            .WithCleanupForm<SplashFormWithProgress, DemoCleanup>()
+            .WithCleanupForm<SplashFormWithProgress>(DemoCleanup.RunAsync)
             .Run();
 
         // Async initialization, a splash form, and multiple main forms:
         ApplicationContextBuilder.Create()
-            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), new DemoInitializer())
+            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
             .WithMainForms((DemoInitializationResult result) => new Form[] {
                 new MainForm1(result),
                 new MainForm2(result),
@@ -39,7 +39,7 @@ static class Program
 
         // As above, but also with DI/IoC:
         ApplicationContextBuilder.Create()
-            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), new DemoInitializer())
+            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
             .WithMainForms<IServiceProvider>(services => new Form[] {
                 services.GetService<MainForm1>(),
                 services.GetService<MainForm2>(),
@@ -73,14 +73,10 @@ static class Program
 
         // Advanced example: Application lifecycle events:
         ApplicationContextBuilder.Create()
-            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), new DemoInitializer())
-            .OnRun<DemoInitializationResult>((result, scope) =>
-            {
-                scope.AddForm(new MainForm1(result), visible: true);
-                scope.AddForm(new MainForm2(result), visible: true);
-            })
-            .OnPreRun<DemoInitializationResult>((result, scope) => MessageBox.Show($"This occurs BEFORE the application runs, but still has access to the initialization result. As proof, it can access the result ID: {result.Id}."))
-            .OnPostRun<DemoInitializationResult>((result, scope) => MessageBox.Show($"This occurs AFTER the application runs, but still has access to the initialization result. As proof, it can access the result ID: {result.Id}."))
+            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
+            .OnRun<DemoInitializationResult>(DemoLifetime.Run)
+            .OnPreRun<DemoInitializationResult>(DemoLifetime.PreRun)
+            .OnPostRun<DemoInitializationResult>(DemoLifetime.PostRun)
             .Run();
 
         // Advanced example: A hidden form.
@@ -102,7 +98,7 @@ static class Program
 
         // Advanced example: Forms being created and shown in order.
         ApplicationContextBuilder.Create()
-            .WithSplashForm<SplashFormWithProgress, DemoInitializerWithDI>()
+            .WithSplashForm<SplashFormWithProgress>(DemoInitializerWithDI.RunAsync)
             .OnRun<IServiceProvider>((services, context) =>
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
