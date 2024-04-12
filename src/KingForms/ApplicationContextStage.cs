@@ -1,8 +1,16 @@
 ﻿namespace KingForms;
 
-public class ApplicationScope
+public class ApplicationContextStage
 {
+    /// <summary>
+    /// Raised when the stage has been completed (i.e. all forms have been closed).
+    /// </summary>
     public event EventHandler Completed;
+
+    /// <summary>
+    /// Gets or sets the state object for the stage. This is used for passing data between stages.
+    /// </summary>
+    public object State { get; private set; }
 
     private readonly IList<Form> _forms = new List<Form>();
 
@@ -51,4 +59,6 @@ public class ApplicationScope
             }
         }
     }
+
+    public void SetCompletedState(object state) => State = state;
 }

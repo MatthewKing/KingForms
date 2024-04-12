@@ -9,19 +9,19 @@ internal class DemoLifetime
         return DemoInitializer.RunAsync(progress);
     }
 
-    public static void PreRun(DemoInitializationResult context, ApplicationScope scope)
+    public static void PreRun(DemoInitializationResult state, ApplicationContextStage stage)
     {
-        MessageBox.Show($"This occurs BEFORE the application runs, but still has access to the initialized context. As proof, it can access the result ID: {context.Id}.");
+        MessageBox.Show($"This occurs BEFORE the application runs, but still has access to the initialized context. As proof, it can access the result ID: {state.Id}.");
     }
 
-    public static void Run(DemoInitializationResult context, ApplicationScope scope)
+    public static void Run(DemoInitializationResult state, ApplicationContextStage stage)
     {
-        scope.AddForm(new MainForm1(context), visible: true);
-        scope.AddForm(new MainForm2(context), visible: true);
+        stage.AddForm(new MainForm1(state), visible: true);
+        stage.AddForm(new MainForm2(state), visible: true);
     }
 
-    public static void PostRun(DemoInitializationResult context, ApplicationScope scope)
+    public static void PostRun(DemoInitializationResult state, ApplicationContextStage stage)
     {
-        MessageBox.Show($"This occurs AFTER the application runs, but still has access to the initialized context. As proof, it can access the result ID: {context.Id}.");
+        MessageBox.Show($"This occurs AFTER the application runs, but still has access to the initialized context. As proof, it can access the result ID: {state.Id}.");
     }
 }

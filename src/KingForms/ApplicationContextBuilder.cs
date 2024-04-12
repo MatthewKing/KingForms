@@ -2,11 +2,6 @@
 
 public class ApplicationContextBuilder
 {
-    private Action<ApplicationScope, Action<object>> _onInitialize;
-    private Action<object, ApplicationScope> _onPreRun;
-    private Action<object, ApplicationScope> _onRun;
-    private Action<object, ApplicationScope> _onPostRun;
-
     private string _singleInstanceMutexName;
     private Action _singleInstanceAlreadyInUseAction;
 
@@ -15,6 +10,15 @@ public class ApplicationContextBuilder
 #if NET5_0_OR_GREATER
     private HighDpiMode _highDpiMode;
 #endif
+
+    // Keep splash form and main form initializers separate.
+    // This lets us call the "WithSplashForm" / "WithMainForm" methods multiple times
+    // without doubling up on the actual forms.
+    private Action<ApplicationContextStage, object> _splashFormInitializer;
+    private Action<ApplicationContextStage, object> _mainFormInitializer;
+
+    // This tracks our generic stage initializers.
+    private readonly List<Action<ApplicationContextStage, object>> _stageInitializers = new List<Action<ApplicationContextStage, object>>();
 
     public ApplicationContextBuilder()
     {
@@ -48,34 +52,29 @@ public class ApplicationContextBuilder
     }
 #endif
 
-    public ApplicationContextBuilder WithMainForm<TResult>(Func<TResult, Form> mainFormFactory)
+    public ApplicationContextBuilder WithSplashForm<TForm>(Func<IProgress<ApplicationProgress>, Task<object>> action = null, bool visible = true)
+        where TForm : Form, new()
     {
-        _onRun = (result, scope) =>
+        return WithSplashForm(() => new TForm(), action: action, visible: visible);
+    }
+
+    public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, Func<IProgress<ApplicationProgress>, Task<object>> action = null, bool visible = true)
+    {
+        _splashFormInitializer = (ApplicationContextStage stage, object state) =>
         {
-            if (result is TResult resultT)
+            var form = splashFormFactory?.Invoke();
+            if (form is not null)
             {
-                var form = mainFormFactory?.Invoke(resultT);
-                if (form is not null)
+                if (action is not null)
                 {
-                    scope.AddForm(form, true);
+                    AttachActionToForm(form, action, newState => stage.SetCompletedState(newState));
                 }
+
+                stage.AddForm(form, visible);
             }
             else
             {
-                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
-            }
-        };
-        return this;
-    }
-
-    public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
-    {
-        _onRun = (_, scope) =>
-        {
-            var form = mainFormFactory?.Invoke();
-            if (form is not null)
-            {
-                scope.AddForm(form, true);
+                throw new ApplicationInitializationException("Splash form factory returned null.");
             }
         };
 
@@ -88,97 +87,138 @@ public class ApplicationContextBuilder
         return WithMainForm(() => new TForm());
     }
 
-    public ApplicationContextBuilder WithMainForms<TResult>(Func<TResult, IEnumerable<Form>> mainFormsFactory)
+    public ApplicationContextBuilder WithMainForm(Func<Form> mainFormFactory)
     {
-        _onRun = (result, scope) =>
+        _mainFormInitializer = (ApplicationContextStage stage, object state) =>
         {
-            if (result is TResult resultT)
+            var form = mainFormFactory?.Invoke();
+            if (form is not null)
             {
-                var forms = mainFormsFactory?.Invoke(resultT);
-                if (forms is not null)
+                stage.AddForm(form, true);
+            }
+            else
+            {
+                throw new ApplicationInitializationException("Main form factory returned null.");
+            }
+        };
+
+        return this;
+    }
+
+    public ApplicationContextBuilder WithMainForm<TState>(Func<TState, Form> mainFormFactory)
+    {
+        _mainFormInitializer = (ApplicationContextStage stage, object state) =>
+        {
+            if (state is TState stateT)
+            {
+                var form = mainFormFactory?.Invoke(stateT);
+                if (form is not null)
                 {
-                    foreach (var form in forms)
-                    {
-                        scope.AddForm(form, true);
-                    }
+                    stage.AddForm(form, true);
+                }
+                else
+                {
+                    throw new ApplicationInitializationException("Main form factory returned null.");
+                }
+            }
+            else if (state is null)
+            {
+                throw new ApplicationInitializationException($"Expected (non-null) state of type {typeof(TState).Name}, but state was null instead.");
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Expected state of type {typeof(TState).Name}, but state was type {state.GetType().Name} instead.");
+            }
+        };
+
+        return this;
+    }
+
+
+    public ApplicationContextBuilder WithMainForms(Func<IEnumerable<Form>> mainFormsFactory)
+    {
+        _mainFormInitializer = (ApplicationContextStage stage, object state) =>
+        {
+            var forms = mainFormsFactory?.Invoke();
+            if (forms is not null)
+            {
+                foreach (var form in forms)
+                {
+                    stage.AddForm(form, true);
                 }
             }
             else
             {
-                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
+                throw new ApplicationInitializationException("Main form factory returned null.");
             }
         };
 
         return this;
     }
 
-    public ApplicationContextBuilder WithMainForms(IEnumerable<Form> forms)
+    public ApplicationContextBuilder WithMainForms<TState>(Func<TState, IEnumerable<Form>> mainFormsFactory)
     {
-        _onRun = (_, scope) =>
+        _mainFormInitializer = (ApplicationContextStage stage, object state) =>
         {
-            foreach (var form in forms)
+            if (state is TState stateT)
             {
-                scope.AddForm(form, true);
+                var forms = mainFormsFactory?.Invoke(stateT);
+                if (forms is not null)
+                {
+                    foreach (var form in forms)
+                    {
+                        stage.AddForm(form, true);
+                    }
+                }
+                else
+                {
+                    throw new ApplicationInitializationException("Main form factory returned null.");
+                }
+            }
+            else if (state is null)
+            {
+                throw new ApplicationInitializationException($"Expected (non-null) state of type {typeof(TState).Name}, but state was null instead.");
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Expected state of type {typeof(TState).Name}, but state was type {state.GetType().Name} instead.");
             }
         };
 
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm<TSplashForm>(Func<IProgress<ApplicationProgress>, Task<object>> splashFormAction, bool keepHidden = false)
-        where TSplashForm : Form, new()
+    public ApplicationContextBuilder AddStage(Action<ApplicationContextStage> stageInitializer)
     {
-        _onInitialize = (scope, onComplete) =>
+        var initializer = (ApplicationContextStage stage, object state) =>
         {
-            var splashForm = new TSplashForm();
-
-            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
-
-            scope.AddForm(splashForm, !keepHidden);
+            stageInitializer?.Invoke(stage);
         };
+
+        _stageInitializers.Add(initializer);
 
         return this;
     }
 
-    public ApplicationContextBuilder WithSplashForm(Func<Form> splashFormFactory, Func<IProgress<ApplicationProgress>, Task<object>> splashFormAction, bool keepHidden = false)
+    public ApplicationContextBuilder AddStage<TState>(Action<ApplicationContextStage, TState> stageInitializer)
     {
-        _onInitialize = (scope, onComplete) =>
+        var initializer = (ApplicationContextStage stage, object state) =>
         {
-            var splashForm = splashFormFactory?.Invoke();
-
-            AttachApplicationActionToForm(splashForm, splashFormAction, onComplete);
-
-            scope.AddForm(splashForm, !keepHidden);
+            if (state is TState stateOfCorrectType)
+            {
+                stageInitializer?.Invoke(stage, stateOfCorrectType);
+            }
+            else if (state is null)
+            {
+                throw new ApplicationInitializationException($"Expected (non-null) state of type {typeof(TState).Name}, but state was null instead.");
+            }
+            else
+            {
+                throw new ApplicationInitializationException($"Expected state of type {typeof(TState).Name}, but state was type {state.GetType().Name} instead.");
+            }
         };
 
-        return this;
-    }
-
-    public ApplicationContextBuilder WithCleanupForm<TCleanupForm>(Func<IProgress<ApplicationProgress>, Task<object>> cleanupFormAction, bool keepHidden = false)
-        where TCleanupForm : Form, new()
-    {
-        _onPostRun = (result, scope) =>
-        {
-            var cleanupForm = new TCleanupForm();
-
-            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
-
-            scope.AddForm(cleanupForm, !keepHidden);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder WithCleanupForm(Func<Form> cleanupFormFactory, Func<IProgress<ApplicationProgress>, Task<object>> cleanupFormAction, bool keepHidden = false)
-    {
-        _onPostRun = (result, scope) =>
-        {
-            var cleanupForm = cleanupFormFactory?.Invoke();
-
-            AttachApplicationActionToForm(cleanupForm, cleanupFormAction);
-
-            scope.AddForm(cleanupForm, !keepHidden);
-        };
+        _stageInitializers.Add(initializer);
 
         return this;
     }
@@ -215,117 +255,23 @@ public class ApplicationContextBuilder
         return this;
     }
 
-    public ApplicationContextBuilder OnPreRun(Action<ApplicationScope> action)
-    {
-        _onPreRun = (_, scope) =>
-        {
-            action?.Invoke(scope);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder OnPreRun<TResult>(Action<TResult, ApplicationScope> action)
-    {
-        _onPreRun = (result, scope) =>
-        {
-            if (result is TResult resultT)
-            {
-                action?.Invoke(resultT, scope);
-            }
-            else
-            {
-                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
-            }
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder OnRun(Action<ApplicationScope> action)
-    {
-        _onRun = (_, scope) =>
-        {
-            action?.Invoke(scope);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder OnRun<TResult>(Action<TResult, ApplicationScope> action)
-    {
-        _onRun = (result, scope) =>
-        {
-            if (result is TResult resultT)
-            {
-                action?.Invoke(resultT, scope);
-            }
-            else
-            {
-                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
-            }
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder OnPostRun(Action<ApplicationScope> action)
-    {
-        _onPostRun = (_, scope) =>
-        {
-            action?.Invoke(scope);
-        };
-
-        return this;
-    }
-
-    public ApplicationContextBuilder OnPostRun<TResult>(Action<TResult, ApplicationScope> action)
-    {
-        _onPostRun = (result, scope) =>
-        {
-            if (result is TResult resultT)
-            {
-                action?.Invoke(resultT, scope);
-            }
-            else
-            {
-                throw new ApplicationInitializationException($"Application action returned {result.GetType().Name} but expected {typeof(TResult).Name}.");
-            }
-        };
-
-        return this;
-    }
-
     public ApplicationContext Build()
     {
         var applicationContext = new ApplicationContextImplementation();
 
-        object context = null;
-
-        if (_onInitialize is not null)
+        if (_splashFormInitializer is not null)
         {
-            applicationContext.AddScope(scope =>
-            {
-                _onInitialize.Invoke(scope, result =>
-                {
-                    context = result;
-                });
-            });
+            applicationContext.AddStageInitializer(_splashFormInitializer);
         }
 
-        if (_onPreRun is not null)
+        if (_mainFormInitializer is not null)
         {
-            applicationContext.AddScope(scope => _onPreRun.Invoke(context, scope));
+            applicationContext.AddStageInitializer(_mainFormInitializer);
         }
 
-        if (_onRun is not null)
+        foreach (var stageInitializer in _stageInitializers)
         {
-            applicationContext.AddScope(scope => _onRun.Invoke(context, scope));
-        }
-
-        if (_onPostRun is not null)
-        {
-            applicationContext.AddScope(scope => _onPostRun.Invoke(context, scope));
+            applicationContext.AddStageInitializer(stageInitializer);
         }
 
         applicationContext.Run();
@@ -392,7 +338,7 @@ public class ApplicationContextBuilder
         return new ApplicationContextBuilder();
     }
 
-    private static void AttachApplicationActionToForm(Form form, Func<IProgress<ApplicationProgress>, Task<object>> action, Action<object> onComplete = null)
+    private static void AttachActionToForm(Form form, Func<IProgress<ApplicationProgress>, Task<object>> action, Action<object> onComplete = null)
     {
         bool canBeClosed = false;
 

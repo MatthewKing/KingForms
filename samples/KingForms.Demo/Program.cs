@@ -8,43 +8,55 @@ static class Program
     [STAThread]
     public static void Main()
     {
-        // Simple example with async initialization and a splash form:
+        // The simplest possible example: An app with a single form.
+        ApplicationContextBuilder.Create()
+            .WithMainForm<MainForm>()
+            .Run();
+
+        // Another very simple example. An app with a splash form and then a main form.
+        ApplicationContextBuilder.Create()
+            .WithSplashForm<SplashFormWithoutProgress>()
+            .WithMainForm<MainForm>()
+            .Run();
+
+        // As above, but the splash form now performs some background initialization. This doesn't impact the main form, though.
         ApplicationContextBuilder.Create()
             .WithSplashForm<SplashFormWithProgress>(DemoInitializer.RunAsync)
             .WithMainForm<MainForm>()
             .Run();
 
-        // As above, but with a very simple splash form without progress indicators.
-        ApplicationContextBuilder.Create()
-            .WithSplashForm<SplashFormWithoutProgress>(DemoInitializer.RunAsync)
-            .WithMainForm<MainForm>()
-            .Run();
-
-        // Simple example with both initialization and cleanup:
+        // As above, but the splash form now passes its initialized state to the main form.
         ApplicationContextBuilder.Create()
             .WithSplashForm<SplashFormWithProgress>(DemoInitializer.RunAsync)
-            .WithMainForm<MainForm>()
-            .WithCleanupForm<SplashFormWithProgress>(DemoCleanup.RunAsync)
+            .WithMainForm((DemoInitializationResult result) => new MainForm1(result))
             .Run();
 
-        // Async initialization, a splash form, and multiple main forms:
+        // As above, but the splash form is also hidden.
+        ApplicationContextBuilder.Create()
+            .WithSplashForm<SplashFormWithProgress>(DemoInitializer.RunAsync, false)
+            .WithMainForm((DemoInitializationResult result) => new MainForm1(result))
+            .Run();
+
+        // Multiple main forms:
+        ApplicationContextBuilder.Create()
+            .WithMainForms(() => [new MainForm(), new ComboBoxDemoForm()])
+            .Run();
+
+        // Putting it all together: Async initialization, a splash form, and multiple main forms.
         ApplicationContextBuilder.Create()
             .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
-            .WithMainForms((DemoInitializationResult result) => new Form[] {
-                new MainForm1(result),
-                new MainForm2(result),
-                new ComboBoxDemoForm(),
-            })
+            .WithMainForms((DemoInitializationResult result) => [new MainForm1(result), new MainForm2(result)])
             .Run();
 
         // As above, but also with DI/IoC:
         ApplicationContextBuilder.Create()
-            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
-            .WithMainForms<IServiceProvider>(services => new Form[] {
+            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializerWithDI.RunAsync)
+            .WithMainForms<IServiceProvider>(services =>
+            [
                 services.GetService<MainForm1>(),
                 services.GetService<MainForm2>(),
                 services.GetService<ComboBoxDemoForm>(),
-            })
+            ])
             .Run();
 
         // A single-instance app:
@@ -71,25 +83,17 @@ static class Program
             .RestrictToSingleInstance("example-mutex-name", InstanceRestorationMethod.SendMessageToMainWindow)
             .Run();
 
-        // Advanced example: Application lifecycle events:
+        // Advanced example: Controlling the "stage" manually.
         ApplicationContextBuilder.Create()
-            .WithSplashForm(() => new SplashFormWithProgress(ProgressBarStyle.Continuous), DemoInitializer.RunAsync)
-            .OnRun<DemoInitializationResult>(DemoLifetime.Run)
-            .OnPreRun<DemoInitializationResult>(DemoLifetime.PreRun)
-            .OnPostRun<DemoInitializationResult>(DemoLifetime.PostRun)
-            .Run();
-
-        // Advanced example: A hidden form.
-        ApplicationContextBuilder.Create()
-            .OnRun(context =>
+            .AddStage(stage =>
             {
                 // This one is visible:
                 var visibleForm = new MainForm();
-                context.AddForm(visibleForm, true);
+                stage.AddForm(visibleForm, true);
 
                 // This one is hidden:
                 var hiddenForm = new MainForm();
-                context.AddForm(hiddenForm, false); // This one is hidden.
+                stage.AddForm(hiddenForm, false); // This one is hidden.
 
                 // Wire up the hidden one to close when the visible one is closed:
                 visibleForm.FormClosed += (s, e) => hiddenForm.Close();
@@ -99,21 +103,41 @@ static class Program
         // Advanced example: Forms being created and shown in order.
         ApplicationContextBuilder.Create()
             .WithSplashForm<SplashFormWithProgress>(DemoInitializerWithDI.RunAsync)
-            .OnRun<IServiceProvider>((services, context) =>
+            .AddStage<IServiceProvider>((stage, services) =>
             {
                 // Show forms in order: MainForm1, MainForm2, ComboBoxDemoForm:
                 var mainForm1 = services.GetService<MainForm1>();
-                context.AddForm(mainForm1);
+                stage.AddForm(mainForm1);
                 mainForm1.FormClosed += (s, e) =>
                 {
                     var mainForm2 = services.GetService<MainForm2>();
-                    context.AddForm(mainForm2);
+                    stage.AddForm(mainForm2);
                     mainForm2.FormClosed += (s, e) =>
                     {
                         var comboBoxDemoForm = services.GetService<ComboBoxDemoForm>();
-                        context.AddForm(comboBoxDemoForm);
+                        stage.AddForm(comboBoxDemoForm);
                     };
                 };
+            })
+            .Run();
+
+        // Advance example: Multiple stages, passing state between them.
+        ApplicationContextBuilder.Create()
+            .AddStage(stage =>
+            {
+                var comboBoxDemoForm = new ComboBoxDemoForm();
+                comboBoxDemoForm.FormClosed += (s, e) =>
+                {
+                    stage.SetCompletedState(new DemoStateDTO() { SelectedDate = comboBoxDemoForm.SelectedDate });
+                };
+
+                stage.AddForm(comboBoxDemoForm);
+            })
+            .AddStage<DemoStateDTO>((stage, state) =>
+            {
+                var mainForm = new MainForm();
+                mainForm.SetText($"In the previous stage, you selected: {state.SelectedDate?.ToString() ?? "NOTHING"}");
+                stage.AddForm(mainForm);
             })
             .Run();
     }

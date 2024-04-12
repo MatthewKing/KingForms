@@ -2,42 +2,49 @@
 
 internal class ApplicationContextImplementation : ApplicationContext
 {
-    private readonly Queue<Action<ApplicationScope>> _scopeInitializers = new();
+    private readonly Queue<Action<ApplicationContextStage, object>> _stageInitializers = new();
 
-    public void AddScope(Action<ApplicationScope> scopeInitializer)
+    private ApplicationContextStage _currentStage;
+    private ApplicationContextStage _previousStage;
+
+    public void AddStageInitializer(Action<ApplicationContextStage, object> stageInitializer)
     {
-        _scopeInitializers.Enqueue(scopeInitializer);
+        _stageInitializers.Enqueue(stageInitializer);
     }
 
     public void Run()
     {
-        if (_scopeInitializers.Count == 0)
+        if (_stageInitializers.Count == 0)
         {
             ExitThreadCore();
+            return;
+        }
+
+        if (_currentStage is not null)
+        {
+            _previousStage = _currentStage;
+        }
+
+        _currentStage = new ApplicationContextStage();
+
+        var stageInitializer = _stageInitializers.Dequeue();
+        stageInitializer.Invoke(_currentStage, _previousStage?.State);
+
+        if (_currentStage.HasForms)
+        {
+            _currentStage.Completed += OnStageCompleted;
         }
         else
         {
-            var scope = new ApplicationScope();
-
-            var scopeInitializer = _scopeInitializers.Dequeue();
-            scopeInitializer?.Invoke(scope);
-
-            if (scope.HasForms)
-            {
-                scope.Completed += OnScopeCompleted;
-            }
-            else
-            {
-                Run();
-            }
+            Run();
         }
     }
 
-    private void OnScopeCompleted(object sender, EventArgs e)
+    private void OnStageCompleted(object sender, EventArgs e)
     {
-        if (sender is ApplicationScope scope)
+        if (sender is ApplicationContextStage stage)
         {
-            scope.Completed -= OnScopeCompleted;
+            stage.Completed -= OnStageCompleted;
             Run();
         }
     }

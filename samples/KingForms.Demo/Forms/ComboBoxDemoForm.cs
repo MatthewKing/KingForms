@@ -2,6 +2,8 @@
 
 public partial class ComboBoxDemoForm : Form
 {
+    public DateOnly? SelectedDate => uxComboBox.GetSelectedValue<DateOnly?>();
+
     public ComboBoxDemoForm()
     {
         InitializeComponent();

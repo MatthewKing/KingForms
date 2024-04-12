@@ -8,4 +8,6 @@ public partial class MainForm : Form
 
         uxTextBox.Text = "MAIN";
     }
+
+    public void SetText(string value) => uxTextBox.Text = value;
 }
