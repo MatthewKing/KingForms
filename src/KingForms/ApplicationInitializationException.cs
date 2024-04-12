@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace KingForms;
+﻿namespace KingForms;
 
 public class ApplicationInitializationException : Exception
 {
@@ -11,7 +9,4 @@ public class ApplicationInitializationException : Exception
 
     public ApplicationInitializationException(string message, Exception innerException)
         : base(message, innerException) { }
-
-    protected ApplicationInitializationException(SerializationInfo info, StreamingContext context)
-        : base(info, context) { }
 }
